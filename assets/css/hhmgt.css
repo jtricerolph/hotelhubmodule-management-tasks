@@ -1,0 +1,484 @@
+/**
+ * Frontend Module Styles
+ *
+ * Material Design inspired styles for the Tasks module
+ *
+ * @package HotelHub_Management_Tasks
+ */
+
+/* ========================================================================
+   CSS Variables
+   ======================================================================== */
+
+:root {
+    /* Primary colors */
+    --hhmgt-primary: #10b981;
+    --hhmgt-primary-hover: #059669;
+    --hhmgt-secondary: #3b82f6;
+    --hhmgt-warning: #f59e0b;
+    --hhmgt-danger: #ef4444;
+
+    /* Neutral colors */
+    --hhmgt-text-primary: #1f2937;
+    --hhmgt-text-secondary: #6b7280;
+    --hhmgt-border: #e5e7eb;
+    --hhmgt-bg-light: #f9fafb;
+    --hhmgt-bg-white: #ffffff;
+
+    /* Status colors */
+    --hhmgt-status-pending: #6b7280;
+    --hhmgt-status-due: #f59e0b;
+    --hhmgt-status-overdue: #ef4444;
+    --hhmgt-status-complete: #10b981;
+
+    /* Spacing */
+    --hhmgt-spacing-xs: 4px;
+    --hhmgt-spacing-sm: 8px;
+    --hhmgt-spacing-md: 16px;
+    --hhmgt-spacing-lg: 24px;
+    --hhmgt-spacing-xl: 32px;
+
+    /* Border radius */
+    --hhmgt-radius-sm: 4px;
+    --hhmgt-radius-md: 8px;
+    --hhmgt-radius-lg: 12px;
+
+    /* Shadows */
+    --hhmgt-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --hhmgt-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --hhmgt-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================================================
+   Container
+   ======================================================================== */
+
+.hhmgt-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--hhmgt-spacing-md);
+}
+
+/* ========================================================================
+   Header
+   ======================================================================== */
+
+.hhmgt-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--hhmgt-bg-white);
+    border-bottom: 2px solid var(--hhmgt-border);
+    padding: 12px var(--hhmgt-spacing-md);
+    margin: calc(var(--hhmgt-spacing-md) * -1) calc(var(--hhmgt-spacing-md) * -1) var(--hhmgt-spacing-md);
+}
+
+.hhmgt-header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--hhmgt-text-primary);
+}
+
+/* ========================================================================
+   Filters
+   ======================================================================== */
+
+.hhmgt-filters {
+    background: var(--hhmgt-bg-white);
+    border: 1px solid var(--hhmgt-border);
+    border-radius: var(--hhmgt-radius-md);
+    padding: var(--hhmgt-spacing-md);
+    margin-bottom: var(--hhmgt-spacing-md);
+}
+
+.hhmgt-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--hhmgt-spacing-md);
+    margin-bottom: var(--hhmgt-spacing-md);
+}
+
+.hhmgt-filter-row:last-child {
+    margin-bottom: 0;
+}
+
+.hhmgt-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hhmgt-spacing-xs);
+    flex: 1;
+    min-width: 150px;
+}
+
+.hhmgt-filter-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--hhmgt-text-secondary);
+}
+
+.hhmgt-filter-select,
+.hhmgt-filter-input {
+    padding: 8px 12px;
+    border: 1px solid var(--hhmgt-border);
+    border-radius: var(--hhmgt-radius-sm);
+    font-size: 14px;
+    background: var(--hhmgt-bg-white);
+    transition: all 0.2s;
+}
+
+.hhmgt-filter-select:focus,
+.hhmgt-filter-input:focus {
+    outline: none;
+    border-color: var(--hhmgt-primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.hhmgt-filter-search {
+    flex: 2;
+}
+
+.hhmgt-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--hhmgt-spacing-sm);
+    font-size: 14px;
+    color: var(--hhmgt-text-primary);
+    cursor: pointer;
+}
+
+.hhmgt-filter-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* ========================================================================
+   Buttons
+   ======================================================================== */
+
+.hhmgt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--hhmgt-spacing-sm);
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--hhmgt-radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.hhmgt-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--hhmgt-shadow-md);
+}
+
+.hhmgt-btn:active {
+    transform: translateY(0);
+}
+
+.hhmgt-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.hhmgt-btn-primary {
+    background: var(--hhmgt-primary);
+    color: #fff;
+}
+
+.hhmgt-btn-primary:hover {
+    background: var(--hhmgt-primary-hover);
+}
+
+.hhmgt-btn-secondary {
+    background: var(--hhmgt-secondary);
+    color: #fff;
+}
+
+.hhmgt-btn-secondary:hover {
+    background: #2563eb;
+}
+
+.hhmgt-btn-danger {
+    background: var(--hhmgt-danger);
+    color: #fff;
+}
+
+.hhmgt-btn-danger:hover {
+    background: #dc2626;
+}
+
+.hhmgt-btn-outline {
+    background: transparent;
+    border: 1px solid var(--hhmgt-border);
+    color: var(--hhmgt-text-primary);
+}
+
+.hhmgt-btn-outline:hover {
+    background: var(--hhmgt-bg-light);
+    border-color: var(--hhmgt-text-secondary);
+}
+
+/* ========================================================================
+   Task Cards
+   ======================================================================== */
+
+.hhmgt-tasks-list {
+    margin-bottom: var(--hhmgt-spacing-md);
+}
+
+.hhmgt-task-group {
+    margin-bottom: var(--hhmgt-spacing-lg);
+}
+
+.hhmgt-task-group-header {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--hhmgt-text-primary);
+    margin-bottom: var(--hhmgt-spacing-md);
+    padding-bottom: var(--hhmgt-spacing-sm);
+    border-bottom: 2px solid var(--hhmgt-border);
+}
+
+.hhmgt-task-card {
+    background: var(--hhmgt-bg-white);
+    border: 1px solid var(--hhmgt-border);
+    border-radius: var(--hhmgt-radius-md);
+    padding: var(--hhmgt-spacing-md);
+    margin-bottom: var(--hhmgt-spacing-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--hhmgt-shadow-sm);
+}
+
+.hhmgt-task-card:hover {
+    box-shadow: var(--hhmgt-shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--hhmgt-primary);
+}
+
+.hhmgt-task-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--hhmgt-spacing-md);
+    margin-bottom: var(--hhmgt-spacing-sm);
+}
+
+.hhmgt-task-icon {
+    flex-shrink: 0;
+    font-size: 32px;
+    line-height: 1;
+}
+
+.hhmgt-task-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.hhmgt-task-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--hhmgt-text-primary);
+    margin-bottom: 4px;
+}
+
+.hhmgt-task-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--hhmgt-spacing-md);
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--hhmgt-text-secondary);
+}
+
+.hhmgt-task-meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--hhmgt-spacing-xs);
+}
+
+.hhmgt-task-meta-item .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.hhmgt-task-description {
+    font-size: 14px;
+    color: var(--hhmgt-text-secondary);
+    margin-top: var(--hhmgt-spacing-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.hhmgt-task-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+}
+
+/* ========================================================================
+   Loading & Empty States
+   ======================================================================== */
+
+.hhmgt-loading {
+    text-align: center;
+    padding: var(--hhmgt-spacing-xl);
+}
+
+.hhmgt-loading-icon {
+    font-size: 48px;
+    color: var(--hhmgt-primary);
+    animation: hhmgt-spin 1s linear infinite;
+}
+
+@keyframes hhmgt-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.hhmgt-empty {
+    text-align: center;
+    padding: var(--hhmgt-spacing-xl);
+}
+
+.hhmgt-empty-icon {
+    font-size: 64px;
+    color: var(--hhmgt-text-secondary);
+    margin-bottom: var(--hhmgt-spacing-md);
+}
+
+.hhmgt-empty-text {
+    font-size: 16px;
+    color: var(--hhmgt-text-secondary);
+}
+
+/* ========================================================================
+   Toast Notifications
+   ======================================================================== */
+
+.hhmgt-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--hhmgt-text-primary);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: var(--hhmgt-radius-sm);
+    box-shadow: var(--hhmgt-shadow-lg);
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    max-width: 300px;
+}
+
+.hhmgt-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.hhmgt-toast-success {
+    background: var(--hhmgt-primary);
+}
+
+.hhmgt-toast-error {
+    background: var(--hhmgt-danger);
+}
+
+.hhmgt-toast-warning {
+    background: var(--hhmgt-warning);
+}
+
+/* ========================================================================
+   Checklist
+   ======================================================================== */
+
+.hhmgt-checklist {
+    margin: var(--hhmgt-spacing-md) 0;
+}
+
+.hhmgt-checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--hhmgt-spacing-sm);
+    padding: var(--hhmgt-spacing-sm);
+    border-radius: var(--hhmgt-radius-sm);
+    transition: background 0.2s;
+}
+
+.hhmgt-checklist-item:hover {
+    background: var(--hhmgt-bg-light);
+}
+
+.hhmgt-checklist-checkbox {
+    margin-top: 2px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.hhmgt-checklist-label {
+    flex: 1;
+    font-size: 14px;
+    color: var(--hhmgt-text-primary);
+    cursor: pointer;
+}
+
+.hhmgt-checklist-item input:checked + .hhmgt-checklist-label {
+    text-decoration: line-through;
+    color: var(--hhmgt-text-secondary);
+}
+
+/* ========================================================================
+   Responsive
+   ======================================================================== */
+
+@media screen and (max-width: 768px) {
+    .hhmgt-container {
+        padding: var(--hhmgt-spacing-sm);
+    }
+
+    .hhmgt-header {
+        margin: calc(var(--hhmgt-spacing-sm) * -1) calc(var(--hhmgt-spacing-sm) * -1) var(--hhmgt-spacing-sm);
+    }
+
+    .hhmgt-filter-row {
+        flex-direction: column;
+    }
+
+    .hhmgt-filter-group {
+        min-width: auto;
+    }
+
+    .hhmgt-task-card-header {
+        flex-direction: column;
+    }
+
+    .hhmgt-task-icon {
+        font-size: 28px;
+    }
+
+    .hhmgt-task-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--hhmgt-spacing-xs);
+    }
+
+    .hhmgt-toast {
+        left: 10px;
+        right: 10px;
+        max-width: none;
+    }
+}
