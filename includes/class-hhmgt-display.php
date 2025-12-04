@@ -1,0 +1,208 @@
+<?php
+/**
+ * Display Class
+ *
+ * Handles frontend rendering of the tasks module
+ *
+ * @package HotelHub_Management_Tasks
+ */
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class HHMGT_Display {
+    private static $instance = null;
+
+    /**
+     * Get singleton instance
+     */
+    public static function instance() {
+        if (null === self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Constructor
+     */
+    private function __construct() {
+        // No hooks needed for now
+    }
+
+    /**
+     * Main render method called by Core
+     *
+     * @param array $params Parameters from Hotel Hub App
+     */
+    public function render($params = array()) {
+        // Check permissions
+        if (!$this->user_can_access()) {
+            echo '<div class="hha-error">' . esc_html__('You do not have permission to access this module.', 'hhmgt') . '</div>';
+            return;
+        }
+
+        // Get current location
+        $location_id = hha_get_current_location();
+
+        if (!$location_id) {
+            echo '<div class="hha-error">' . esc_html__('No location selected.', 'hhmgt') . '</div>';
+            return;
+        }
+
+        // Get location settings
+        $settings = HHMGT_Settings::get_location_settings($location_id);
+
+        if (!$settings['enabled']) {
+            echo '<div class="hha-info">' . esc_html__('Tasks module is not enabled for this location.', 'hhmgt') . '</div>';
+            return;
+        }
+
+        // Render the module UI
+        $this->render_tasks_interface($location_id, $settings);
+    }
+
+    /**
+     * Render tasks interface
+     *
+     * @param int $location_id Current location ID
+     * @param array $settings Location settings
+     */
+    private function render_tasks_interface($location_id, $settings) {
+        ?>
+        <div class="hhmgt-container" data-location="<?php echo esc_attr($location_id); ?>">
+            <!-- Header -->
+            <div class="hhmgt-header">
+                <h1><?php esc_html_e('Tasks', 'hhmgt'); ?></h1>
+            </div>
+
+            <!-- Filters -->
+            <div class="hhmgt-filters">
+                <div class="hhmgt-filter-row">
+                    <!-- Department filter -->
+                    <div class="hhmgt-filter-group">
+                        <label for="filter-department"><?php esc_html_e('Department', 'hhmgt'); ?></label>
+                        <select id="filter-department" class="hhmgt-filter-select" multiple>
+                            <option value=""><?php esc_html_e('All Departments', 'hhmgt'); ?></option>
+                            <?php if (!empty($settings['departments'])): ?>
+                                <?php foreach ($settings['departments'] as $dept): ?>
+                                    <?php if ($dept['is_enabled']): ?>
+                                        <option value="<?php echo esc_attr($dept['dept_slug']); ?>">
+                                            <?php echo esc_html($dept['dept_name']); ?>
+                                        </option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+
+                    <!-- Location Type filter -->
+                    <div class="hhmgt-filter-group">
+                        <label for="filter-location-type"><?php esc_html_e('Location Type', 'hhmgt'); ?></label>
+                        <select id="filter-location-type" class="hhmgt-filter-select">
+                            <option value=""><?php esc_html_e('All Types', 'hhmgt'); ?></option>
+                            <!-- Populated dynamically via AJAX -->
+                        </select>
+                    </div>
+
+                    <!-- Location filter -->
+                    <div class="hhmgt-filter-group">
+                        <label for="filter-location"><?php esc_html_e('Location', 'hhmgt'); ?></label>
+                        <select id="filter-location" class="hhmgt-filter-select">
+                            <option value=""><?php esc_html_e('All Locations', 'hhmgt'); ?></option>
+                            <!-- Populated dynamically via AJAX based on type -->
+                        </select>
+                    </div>
+
+                    <!-- Date range -->
+                    <div class="hhmgt-filter-group">
+                        <label for="filter-date-from"><?php esc_html_e('From', 'hhmgt'); ?></label>
+                        <input type="date" id="filter-date-from" class="hhmgt-filter-input"
+                               value="<?php echo esc_attr(date('Y-m-d', strtotime('-7 days'))); ?>">
+                    </div>
+
+                    <div class="hhmgt-filter-group">
+                        <label for="filter-date-to"><?php esc_html_e('To', 'hhmgt'); ?></label>
+                        <input type="date" id="filter-date-to" class="hhmgt-filter-input"
+                               value="<?php echo esc_attr(date('Y-m-d', strtotime('+7 days'))); ?>">
+                    </div>
+                </div>
+
+                <div class="hhmgt-filter-row">
+                    <!-- Show completed toggle -->
+                    <div class="hhmgt-filter-group">
+                        <label class="hhmgt-checkbox-label">
+                            <input type="checkbox" id="filter-show-completed" class="hhmgt-filter-checkbox">
+                            <span><?php esc_html_e('Show Completed', 'hhmgt'); ?></span>
+                        </label>
+                    </div>
+
+                    <!-- Group by -->
+                    <div class="hhmgt-filter-group">
+                        <label for="filter-group-by"><?php esc_html_e('Group By', 'hhmgt'); ?></label>
+                        <select id="filter-group-by" class="hhmgt-filter-select">
+                            <option value=""><?php esc_html_e('None', 'hhmgt'); ?></option>
+                            <option value="location"><?php esc_html_e('Location', 'hhmgt'); ?></option>
+                            <option value="department"><?php esc_html_e('Department', 'hhmgt'); ?></option>
+                            <option value="status"><?php esc_html_e('Status', 'hhmgt'); ?></option>
+                        </select>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="hhmgt-filter-group hhmgt-filter-search">
+                        <label for="filter-search"><?php esc_html_e('Search', 'hhmgt'); ?></label>
+                        <input type="text" id="filter-search" class="hhmgt-filter-input"
+                               placeholder="<?php esc_attr_e('Search tasks...', 'hhmgt'); ?>">
+                    </div>
+
+                    <!-- Apply filters button -->
+                    <div class="hhmgt-filter-group">
+                        <button id="apply-filters" class="hhmgt-btn hhmgt-btn-primary">
+                            <span class="material-symbols-outlined">filter_list</span>
+                            <?php esc_html_e('Apply Filters', 'hhmgt'); ?>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks list container -->
+            <div class="hhmgt-tasks-list" id="tasks-list">
+                <div class="hhmgt-loading">
+                    <span class="material-symbols-outlined hhmgt-loading-icon">sync</span>
+                    <p><?php esc_html_e('Loading tasks...', 'hhmgt'); ?></p>
+                </div>
+            </div>
+
+            <!-- Task detail modal -->
+            <div id="task-modal" class="hhmgt-modal" style="display: none;">
+                <div class="hhmgt-modal-overlay"></div>
+                <div class="hhmgt-modal-content">
+                    <!-- Modal content loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Completion confirmation modal -->
+            <div id="completion-modal" class="hhmgt-modal hhmgt-modal-small" style="display: none;">
+                <div class="hhmgt-modal-overlay"></div>
+                <div class="hhmgt-modal-content">
+                    <!-- Completion form loaded dynamically -->
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Check if user can access module
+     *
+     * @return bool
+     */
+    private function user_can_access() {
+        if (function_exists('wfa_user_can')) {
+            return wfa_user_can('hhmgt_tasks_access');
+        }
+        return current_user_can('edit_posts'); // Fallback
+    }
+}

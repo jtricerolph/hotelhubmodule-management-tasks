@@ -1,0 +1,367 @@
+[
+  {
+    "name": "assignment_turned_in",
+    "category": "Tasks",
+    "description": "Completed assignment"
+  },
+  {
+    "name": "fact_check",
+    "category": "Tasks",
+    "description": "Checklist"
+  },
+  {
+    "name": "task_alt",
+    "category": "Tasks",
+    "description": "Task complete"
+  },
+  {
+    "name": "check_circle",
+    "category": "Tasks",
+    "description": "Check mark"
+  },
+  {
+    "name": "schedule",
+    "category": "Tasks",
+    "description": "Schedule/calendar"
+  },
+  {
+    "name": "event",
+    "category": "Tasks",
+    "description": "Event"
+  },
+  {
+    "name": "today",
+    "category": "Tasks",
+    "description": "Today"
+  },
+  {
+    "name": "cleaning_services",
+    "category": "Housekeeping",
+    "description": "Cleaning services"
+  },
+  {
+    "name": "dry_cleaning",
+    "category": "Housekeeping",
+    "description": "Dry cleaning"
+  },
+  {
+    "name": "local_laundry_service",
+    "category": "Housekeeping",
+    "description": "Laundry"
+  },
+  {
+    "name": "soap",
+    "category": "Housekeeping",
+    "description": "Soap/cleaning"
+  },
+  {
+    "name": "cleaning",
+    "category": "Housekeeping",
+    "description": "Cleaning"
+  },
+  {
+    "name": "bedtime",
+    "category": "Hotel",
+    "description": "Bedtime/sleep"
+  },
+  {
+    "name": "king_bed",
+    "category": "Hotel",
+    "description": "King bed"
+  },
+  {
+    "name": "single_bed",
+    "category": "Hotel",
+    "description": "Single bed"
+  },
+  {
+    "name": "bed",
+    "category": "Hotel",
+    "description": "Bed"
+  },
+  {
+    "name": "hotel",
+    "category": "Hotel",
+    "description": "Hotel"
+  },
+  {
+    "name": "door_front",
+    "category": "Hotel",
+    "description": "Front door"
+  },
+  {
+    "name": "meeting_room",
+    "category": "Hotel",
+    "description": "Meeting room"
+  },
+  {
+    "name": "restaurant",
+    "category": "Food & Beverage",
+    "description": "Restaurant"
+  },
+  {
+    "name": "coffee",
+    "category": "Food & Beverage",
+    "description": "Coffee"
+  },
+  {
+    "name": "dining",
+    "category": "Food & Beverage",
+    "description": "Dining"
+  },
+  {
+    "name": "kitchen",
+    "category": "Food & Beverage",
+    "description": "Kitchen"
+  },
+  {
+    "name": "room_service",
+    "category": "Food & Beverage",
+    "description": "Room service"
+  },
+  {
+    "name": "plumbing",
+    "category": "Maintenance",
+    "description": "Plumbing"
+  },
+  {
+    "name": "electrical_services",
+    "category": "Maintenance",
+    "description": "Electrical"
+  },
+  {
+    "name": "hvac",
+    "category": "Maintenance",
+    "description": "HVAC"
+  },
+  {
+    "name": "light",
+    "category": "Maintenance",
+    "description": "Light/lighting"
+  },
+  {
+    "name": "air",
+    "category": "Maintenance",
+    "description": "Air conditioning"
+  },
+  {
+    "name": "build",
+    "category": "Maintenance",
+    "description": "Build/construction"
+  },
+  {
+    "name": "construction",
+    "category": "Maintenance",
+    "description": "Construction"
+  },
+  {
+    "name": "handyman",
+    "category": "Maintenance",
+    "description": "Handyman"
+  },
+  {
+    "name": "home_repair_service",
+    "category": "Maintenance",
+    "description": "Repair service"
+  },
+  {
+    "name": "carpenter",
+    "category": "Maintenance",
+    "description": "Carpenter"
+  },
+  {
+    "name": "pool",
+    "category": "Amenities",
+    "description": "Swimming pool"
+  },
+  {
+    "name": "fitness_center",
+    "category": "Amenities",
+    "description": "Fitness center"
+  },
+  {
+    "name": "spa",
+    "category": "Amenities",
+    "description": "Spa"
+  },
+  {
+    "name": "hot_tub",
+    "category": "Amenities",
+    "description": "Hot tub"
+  },
+  {
+    "name": "wifi",
+    "category": "Technology",
+    "description": "WiFi"
+  },
+  {
+    "name": "tv",
+    "category": "Technology",
+    "description": "Television"
+  },
+  {
+    "name": "phone",
+    "category": "Technology",
+    "description": "Phone"
+  },
+  {
+    "name": "laptop",
+    "category": "Technology",
+    "description": "Laptop/computer"
+  },
+  {
+    "name": "router",
+    "category": "Technology",
+    "description": "Router/network"
+  },
+  {
+    "name": "fire_extinguisher",
+    "category": "Safety",
+    "description": "Fire extinguisher"
+  },
+  {
+    "name": "emergency",
+    "category": "Safety",
+    "description": "Emergency"
+  },
+  {
+    "name": "pest_control",
+    "category": "Safety",
+    "description": "Pest control"
+  },
+  {
+    "name": "security",
+    "category": "Safety",
+    "description": "Security"
+  },
+  {
+    "name": "verified_user",
+    "category": "Safety",
+    "description": "Verified/secure"
+  },
+  {
+    "name": "description",
+    "category": "General",
+    "description": "Document/description"
+  },
+  {
+    "name": "folder",
+    "category": "General",
+    "description": "Folder"
+  },
+  {
+    "name": "person",
+    "category": "People",
+    "description": "Person"
+  },
+  {
+    "name": "group",
+    "category": "People",
+    "description": "Group/people"
+  },
+  {
+    "name": "badge",
+    "category": "People",
+    "description": "Badge/ID"
+  },
+  {
+    "name": "admin_panel_settings",
+    "category": "Settings",
+    "description": "Admin settings"
+  },
+  {
+    "name": "settings",
+    "category": "Settings",
+    "description": "Settings"
+  },
+  {
+    "name": "tune",
+    "category": "Settings",
+    "description": "Adjust/tune"
+  },
+  {
+    "name": "warning",
+    "category": "Status",
+    "description": "Warning"
+  },
+  {
+    "name": "error",
+    "category": "Status",
+    "description": "Error"
+  },
+  {
+    "name": "info",
+    "category": "Status",
+    "description": "Information"
+  },
+  {
+    "name": "notifications",
+    "category": "Status",
+    "description": "Notifications"
+  },
+  {
+    "name": "priority_high",
+    "category": "Status",
+    "description": "High priority"
+  },
+  {
+    "name": "bathtub",
+    "category": "Hotel",
+    "description": "Bathtub/bathroom"
+  },
+  {
+    "name": "shower",
+    "category": "Hotel",
+    "description": "Shower"
+  },
+  {
+    "name": "straighten",
+    "category": "Hotel",
+    "description": "Straighten/organize"
+  },
+  {
+    "name": "inventory",
+    "category": "General",
+    "description": "Inventory"
+  },
+  {
+    "name": "inventory_2",
+    "category": "General",
+    "description": "Inventory list"
+  },
+  {
+    "name": "checklist",
+    "category": "Tasks",
+    "description": "Checklist"
+  },
+  {
+    "name": "list_alt",
+    "category": "Tasks",
+    "description": "List view"
+  },
+  {
+    "name": "view_list",
+    "category": "Tasks",
+    "description": "View list"
+  },
+  {
+    "name": "dashboard",
+    "category": "General",
+    "description": "Dashboard"
+  },
+  {
+    "name": "analytics",
+    "category": "General",
+    "description": "Analytics/reports"
+  },
+  {
+    "name": "assessment",
+    "category": "General",
+    "description": "Assessment"
+  },
+  {
+    "name": "report",
+    "category": "General",
+    "description": "Report"
+  }
+]

@@ -1,0 +1,341 @@
+<?php
+/**
+ * Settings Management Class
+ *
+ * Handles per-location settings storage and retrieval
+ *
+ * @package HotelHub_Management_Tasks
+ */
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class HHMGT_Settings {
+    const OPTION_NAME = 'hhmgt_location_settings';
+
+    private static $instance = null;
+
+    /**
+     * Get singleton instance
+     */
+    public static function instance() {
+        if (null === self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Constructor
+     */
+    private function __construct() {
+        add_action('admin_init', array($this, 'register_settings'));
+        add_action('admin_post_hhmgt_save_settings', array($this, 'save_settings'));
+        add_action('wp_ajax_hhmgt_get_material_symbols', array($this, 'ajax_get_material_symbols'));
+    }
+
+    /**
+     * Register settings
+     */
+    public function register_settings() {
+        register_setting('hhmgt_settings', self::OPTION_NAME);
+    }
+
+    /**
+     * Render settings page
+     */
+    public static function render() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions.', 'hhmgt'));
+        }
+
+        // Get locations from Hotel Hub App
+        $locations = self::get_locations();
+
+        // Get current settings
+        $settings = get_option(self::OPTION_NAME, array());
+
+        // Get current tab
+        $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general';
+
+        // Get current location
+        $current_location_id = isset($_GET['location_id']) ? intval($_GET['location_id']) : 0;
+
+        // If no location selected, use first location
+        if (!$current_location_id && !empty($locations)) {
+            $current_location_id = $locations[0]['id'];
+        }
+
+        // Get location settings
+        $location_settings = isset($settings[$current_location_id]) ? $settings[$current_location_id] : self::get_default_settings();
+
+        // Load template
+        include HHMGT_PLUGIN_DIR . 'admin/views/settings.php';
+    }
+
+    /**
+     * Get default settings for a location
+     */
+    public static function get_default_settings() {
+        return array(
+            'enabled' => false,
+            'departments' => array(),
+            'recurring_patterns' => array(),
+            'task_states' => array(
+                array(
+                    'state_name' => __('Pending', 'hhmgt'),
+                    'state_slug' => 'pending',
+                    'color_hex' => '#6b7280',
+                    'is_default' => true,
+                    'is_complete_state' => false,
+                    'is_enabled' => true,
+                    'sort_order' => 0
+                ),
+                array(
+                    'state_name' => __('Due', 'hhmgt'),
+                    'state_slug' => 'due',
+                    'color_hex' => '#f59e0b',
+                    'is_default' => true,
+                    'is_complete_state' => false,
+                    'is_enabled' => true,
+                    'sort_order' => 1
+                ),
+                array(
+                    'state_name' => __('Overdue', 'hhmgt'),
+                    'state_slug' => 'overdue',
+                    'color_hex' => '#ef4444',
+                    'is_default' => true,
+                    'is_complete_state' => false,
+                    'is_enabled' => true,
+                    'sort_order' => 2
+                ),
+                array(
+                    'state_name' => __('Complete', 'hhmgt'),
+                    'state_slug' => 'complete',
+                    'color_hex' => '#10b981',
+                    'is_default' => true,
+                    'is_complete_state' => true,
+                    'is_enabled' => true,
+                    'sort_order' => 3
+                )
+            )
+        );
+    }
+
+    /**
+     * Save settings
+     */
+    public function save_settings() {
+        // Check nonce
+        if (!isset($_POST['hhmgt_settings_nonce']) ||
+            !wp_verify_nonce($_POST['hhmgt_settings_nonce'], 'hhmgt_save_settings')) {
+            wp_die(__('Security check failed', 'hhmgt'));
+        }
+
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions', 'hhmgt'));
+        }
+
+        $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
+        $tab = isset($_POST['tab']) ? sanitize_text_field($_POST['tab']) : 'general';
+
+        if (!$location_id) {
+            wp_die(__('Invalid location', 'hhmgt'));
+        }
+
+        // Get all settings
+        $all_settings = get_option(self::OPTION_NAME, array());
+
+        // Get current location settings or defaults
+        $location_settings = isset($all_settings[$location_id]) ? $all_settings[$location_id] : self::get_default_settings();
+
+        // Update based on tab
+        switch ($tab) {
+            case 'general':
+                $location_settings['enabled'] = isset($_POST['enabled']) ? true : false;
+                break;
+
+            case 'departments':
+                $location_settings['departments'] = $this->process_departments_data($_POST);
+                break;
+
+            case 'recurring_patterns':
+                $location_settings['recurring_patterns'] = $this->process_patterns_data($_POST);
+                break;
+
+            case 'task_states':
+                $location_settings['task_states'] = $this->process_states_data($_POST);
+                break;
+
+            case 'checklist_templates':
+                // Templates are stored in database, not options
+                $this->save_checklist_templates($location_id, $_POST);
+                break;
+        }
+
+        // Save updated settings
+        $all_settings[$location_id] = $location_settings;
+        update_option(self::OPTION_NAME, $all_settings);
+
+        // Redirect back
+        wp_redirect(add_query_arg(
+            array(
+                'page' => 'hhmgt-settings',
+                'tab' => $tab,
+                'location_id' => $location_id,
+                'updated' => 'true'
+            ),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    /**
+     * Process departments data from POST
+     */
+    private function process_departments_data($post_data) {
+        $departments = array();
+
+        if (isset($post_data['departments']) && is_array($post_data['departments'])) {
+            foreach ($post_data['departments'] as $dept_data) {
+                $departments[] = array(
+                    'dept_name' => sanitize_text_field($dept_data['dept_name']),
+                    'dept_slug' => sanitize_title($dept_data['dept_name']),
+                    'icon_name' => sanitize_text_field($dept_data['icon_name']),
+                    'color_hex' => sanitize_hex_color($dept_data['color_hex']),
+                    'description' => sanitize_textarea_field($dept_data['description'] ?? ''),
+                    'is_enabled' => isset($dept_data['is_enabled']) ? true : false,
+                    'sort_order' => intval($dept_data['sort_order'] ?? 0)
+                );
+            }
+        }
+
+        return $departments;
+    }
+
+    /**
+     * Process recurring patterns data from POST
+     */
+    private function process_patterns_data($post_data) {
+        $patterns = array();
+
+        if (isset($post_data['patterns']) && is_array($post_data['patterns'])) {
+            foreach ($post_data['patterns'] as $pattern_data) {
+                $patterns[] = array(
+                    'pattern_name' => sanitize_text_field($pattern_data['pattern_name']),
+                    'interval_type' => in_array($pattern_data['interval_type'], array('fixed', 'dynamic')) ? $pattern_data['interval_type'] : 'dynamic',
+                    'interval_days' => intval($pattern_data['interval_days']),
+                    'lead_time_days' => intval($pattern_data['lead_time_days'] ?? 0),
+                    'is_enabled' => isset($pattern_data['is_enabled']) ? true : false
+                );
+            }
+        }
+
+        return $patterns;
+    }
+
+    /**
+     * Process task states data from POST
+     */
+    private function process_states_data($post_data) {
+        $states = array();
+
+        if (isset($post_data['states']) && is_array($post_data['states'])) {
+            foreach ($post_data['states'] as $state_data) {
+                $states[] = array(
+                    'state_name' => sanitize_text_field($state_data['state_name']),
+                    'state_slug' => sanitize_title($state_data['state_name']),
+                    'color_hex' => sanitize_hex_color($state_data['color_hex']),
+                    'is_default' => isset($state_data['is_default']) ? true : false,
+                    'is_complete_state' => isset($state_data['is_complete_state']) ? true : false,
+                    'is_enabled' => isset($state_data['is_enabled']) ? true : false,
+                    'sort_order' => intval($state_data['sort_order'] ?? 0)
+                );
+            }
+        }
+
+        return $states;
+    }
+
+    /**
+     * Save checklist templates to database
+     */
+    private function save_checklist_templates($location_id, $post_data) {
+        // TODO: Implement template saving to wp_hhmgt_checklist_templates table
+    }
+
+    /**
+     * Get locations from Hotel Hub App
+     */
+    public static function get_locations() {
+        if (!function_exists('hha')) {
+            return array();
+        }
+
+        $hotels = hha()->hotels->get_active();
+
+        $locations = array();
+        foreach ($hotels as $hotel) {
+            $locations[] = array(
+                'id'   => $hotel->id,
+                'name' => $hotel->name
+            );
+        }
+
+        return $locations;
+    }
+
+    /**
+     * Get settings for a specific location
+     */
+    public static function get_location_settings($location_id) {
+        $all_settings = get_option(self::OPTION_NAME, array());
+
+        if (isset($all_settings[$location_id])) {
+            return $all_settings[$location_id];
+        }
+
+        // Return defaults
+        return self::get_default_settings();
+    }
+
+    /**
+     * AJAX: Get Material Symbols icon list
+     */
+    public function ajax_get_material_symbols() {
+        check_ajax_referer('hhmgt_admin_nonce', 'nonce');
+
+        // Load icons from data file
+        $icons_file = HHMGT_PLUGIN_DIR . 'assets/data/material-symbols.json';
+
+        if (file_exists($icons_file)) {
+            $icons_json = file_get_contents($icons_file);
+            wp_send_json_success(json_decode($icons_json, true));
+        } else {
+            // Return common icons as fallback
+            wp_send_json_success($this->get_common_icons());
+        }
+    }
+
+    /**
+     * Get common Material Symbols icons
+     */
+    private function get_common_icons() {
+        return array(
+            'assignment_turned_in', 'fact_check', 'task_alt', 'check_circle', 'schedule',
+            'cleaning_services', 'dry_cleaning', 'local_laundry_service', 'soap',
+            'bedtime', 'king_bed', 'single_bed', 'bed', 'hotel',
+            'restaurant', 'coffee', 'dining', 'kitchen',
+            'plumbing', 'electrical_services', 'hvac', 'light', 'air',
+            'pool', 'fitness_center', 'spa', 'hot_tub',
+            'wifi', 'tv', 'phone', 'laptop',
+            'fire_extinguisher', 'emergency', 'pest_control', 'security',
+            'build', 'construction', 'handyman', 'home_repair_service',
+            'description', 'folder', 'event', 'today',
+            'person', 'group', 'badge', 'admin_panel_settings'
+        );
+    }
+}
