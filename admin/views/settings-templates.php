@@ -102,9 +102,8 @@ $templates = $wpdb->get_results($wpdb->prepare(
             </button>
         </div>
         <div class="hhmgt-modal-body">
-            <form id="template-form">
+            <form id="template-form" onsubmit="return false;">
                 <input type="hidden" name="template_id" id="template_id">
-                <input type="hidden" name="action" value="hhmgt_save_template">
                 <input type="hidden" name="location_id" value="<?php echo esc_attr($current_location_id); ?>">
 
                 <div class="hhmgt-form-group">
@@ -130,7 +129,7 @@ $templates = $wpdb->get_results($wpdb->prepare(
 
                 <div class="hhmgt-modal-footer">
                     <button type="button" class="button hhmgt-modal-close"><?php _e('Cancel', 'hhmgt'); ?></button>
-                    <button type="submit" class="button button-primary"><?php _e('Save Template', 'hhmgt'); ?></button>
+                    <button type="button" class="button button-primary" id="save-template-btn"><?php _e('Save Template', 'hhmgt'); ?></button>
                 </div>
             </form>
         </div>
@@ -280,9 +279,18 @@ jQuery(document).ready(function($) {
         $(this).closest('.hhmgt-template-item').remove();
     });
 
-    // Submit template form
-    $('#template-form').on('submit', function(e) {
+    // Save template button click
+    $('#save-template-btn').on('click', function(e) {
         e.preventDefault();
+        e.stopPropagation();
+
+        // Validate template name
+        const templateName = $('#template_name').val().trim();
+        if (!templateName) {
+            alert('<?php esc_attr_e('Please enter a template name.', 'hhmgt'); ?>');
+            $('#template_name').focus();
+            return;
+        }
 
         const items = [];
         $('#template-checklist-items input[type="text"]').each(function() {
@@ -299,7 +307,7 @@ jQuery(document).ready(function($) {
                 action: 'hhmgt_save_template',
                 nonce: hhmgtAdmin.nonce,
                 template_id: $('#template_id').val(),
-                template_name: $('#template_name').val(),
+                template_name: templateName,
                 checklist_items: JSON.stringify(items),
                 location_id: <?php echo $current_location_id; ?>
             },
@@ -309,6 +317,10 @@ jQuery(document).ready(function($) {
                 } else {
                     alert(response.data.message || hhmgtAdmin.strings.error);
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', status, error);
+                alert('<?php esc_attr_e('Error saving template. Please try again.', 'hhmgt'); ?>');
             }
         });
     });

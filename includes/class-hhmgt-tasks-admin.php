@@ -101,6 +101,9 @@ class HHMGT_Tasks_Admin {
             }
         }
 
+        // Auto-sync settings if needed (in case user configured before bug fix)
+        self::maybe_auto_sync_settings($current_location_id);
+
         // Get departments
         $departments = self::get_departments($current_location_id);
 
@@ -479,5 +482,61 @@ class HHMGT_Tasks_Admin {
             ORDER BY template_name ASC",
             $location_id
         ));
+    }
+
+    /**
+     * Auto-sync settings from options to database if needed
+     */
+    private static function maybe_auto_sync_settings($location_id) {
+        $settings = get_option(HHMGT_Settings::OPTION_NAME, array());
+        $location_settings = $settings[$location_id] ?? array();
+
+        if (empty($location_settings)) {
+            return;
+        }
+
+        $settings_instance = HHMGT_Settings::instance();
+        $reflection = new ReflectionClass($settings_instance);
+
+        global $wpdb;
+
+        // Check and sync departments
+        if (!empty($location_settings['departments'])) {
+            $dept_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_departments WHERE location_id = %d",
+                $location_id
+            ));
+            if ($dept_count == 0) {
+                $method = $reflection->getMethod('sync_departments');
+                $method->setAccessible(true);
+                $method->invoke($settings_instance, $location_id, $location_settings['departments']);
+            }
+        }
+
+        // Check and sync patterns
+        if (!empty($location_settings['recurring_patterns'])) {
+            $pattern_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_recurring_patterns WHERE location_id = %d",
+                $location_id
+            ));
+            if ($pattern_count == 0) {
+                $method = $reflection->getMethod('sync_patterns');
+                $method->setAccessible(true);
+                $method->invoke($settings_instance, $location_id, $location_settings['recurring_patterns']);
+            }
+        }
+
+        // Check and sync states
+        if (!empty($location_settings['task_states'])) {
+            $state_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_task_states WHERE location_id = %d",
+                $location_id
+            ));
+            if ($state_count == 0) {
+                $method = $reflection->getMethod('sync_states');
+                $method->setAccessible(true);
+                $method->invoke($settings_instance, $location_id, $location_settings['task_states']);
+            }
+        }
     }
 }

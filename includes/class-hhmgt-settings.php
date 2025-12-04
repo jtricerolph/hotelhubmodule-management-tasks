@@ -74,8 +74,51 @@ class HHMGT_Settings {
         // Get location settings
         $location_settings = isset($settings[$current_location_id]) ? $settings[$current_location_id] : self::get_default_settings();
 
+        // Auto-sync existing data to database if not already synced
+        self::instance()->maybe_sync_existing_data($current_location_id, $location_settings);
+
         // Load template
         include HHMGT_PLUGIN_DIR . 'admin/views/settings.php';
+    }
+
+    /**
+     * Auto-sync existing options data to database tables if needed
+     */
+    private function maybe_sync_existing_data($location_id, $location_settings) {
+        global $wpdb;
+
+        // Check if departments exist in options but not in database
+        if (!empty($location_settings['departments'])) {
+            $dept_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_departments WHERE location_id = %d",
+                $location_id
+            ));
+            if ($dept_count == 0) {
+                $this->sync_departments($location_id, $location_settings['departments']);
+            }
+        }
+
+        // Check if patterns exist in options but not in database
+        if (!empty($location_settings['recurring_patterns'])) {
+            $pattern_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_recurring_patterns WHERE location_id = %d",
+                $location_id
+            ));
+            if ($pattern_count == 0) {
+                $this->sync_patterns($location_id, $location_settings['recurring_patterns']);
+            }
+        }
+
+        // Check if states exist in options but not in database
+        if (!empty($location_settings['task_states'])) {
+            $state_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_task_states WHERE location_id = %d",
+                $location_id
+            ));
+            if ($state_count == 0) {
+                $this->sync_states($location_id, $location_settings['task_states']);
+            }
+        }
     }
 
     /**
