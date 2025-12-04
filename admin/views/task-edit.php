@@ -82,38 +82,37 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
                     <h2><?php _e('Recurrence Settings', 'hhmgt'); ?></h2>
 
                     <div class="hhmgt-form-group">
-                        <label for="recurrence_type"><?php _e('Recurrence Type', 'hhmgt'); ?></label>
-                        <select id="recurrence_type" name="recurrence_type">
-                            <option value="none" <?php selected($task->recurrence_type ?? 'none', 'none'); ?>>
-                                <?php _e('One-Time (No Recurrence)', 'hhmgt'); ?>
+                        <label for="is_recurring"><?php _e('Task Type', 'hhmgt'); ?></label>
+                        <select id="is_recurring" name="is_recurring">
+                            <option value="0" <?php selected(empty($task->recurrence_pattern_id), true); ?>>
+                                <?php _e('One-Time Task', 'hhmgt'); ?>
                             </option>
-                            <option value="fixed" <?php selected($task->recurrence_type ?? '', 'fixed'); ?>>
-                                <?php _e('Fixed Interval (Calendar-Based)', 'hhmgt'); ?>
-                            </option>
-                            <option value="dynamic" <?php selected($task->recurrence_type ?? '', 'dynamic'); ?>>
-                                <?php _e('Dynamic Interval (From Completion)', 'hhmgt'); ?>
+                            <option value="1" <?php selected(!empty($task->recurrence_pattern_id), true); ?>>
+                                <?php _e('Recurring Task', 'hhmgt'); ?>
                             </option>
                         </select>
-                        <p class="description">
-                            <?php _e('Fixed: Next task scheduled on calendar (e.g., every 7 days from original date).', 'hhmgt'); ?><br>
-                            <?php _e('Dynamic: Next task scheduled from completion (e.g., 7 days after task is completed).', 'hhmgt'); ?>
-                        </p>
                     </div>
 
                     <div class="hhmgt-form-group" id="recurrence_pattern_group" style="display: none;">
-                        <label for="recurrence_pattern_id"><?php _e('Recurring Pattern', 'hhmgt'); ?></label>
+                        <label for="recurrence_pattern_id"><?php _e('Recurring Pattern', 'hhmgt'); ?> <span class="required">*</span></label>
                         <select id="recurrence_pattern_id" name="recurrence_pattern_id">
                             <option value=""><?php _e('-- Select Pattern --', 'hhmgt'); ?></option>
                             <?php foreach ($patterns as $pattern): ?>
                                 <option value="<?php echo esc_attr($pattern->id); ?>"
                                         data-interval="<?php echo esc_attr($pattern->interval_days); ?>"
+                                        data-type="<?php echo esc_attr($pattern->interval_type); ?>"
                                         <?php selected($task->recurrence_pattern_id ?? '', $pattern->id); ?>>
                                     <?php echo esc_html($pattern->pattern_name); ?>
-                                    (<?php printf(_n('%d day', '%d days', $pattern->interval_days, 'hhmgt'), $pattern->interval_days); ?>)
+                                    - <?php printf(_n('%d day', '%d days', $pattern->interval_days, 'hhmgt'), $pattern->interval_days); ?>
+                                    (<?php echo $pattern->interval_type === 'fixed' ? __('Fixed', 'hhmgt') : __('Dynamic', 'hhmgt'); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <p class="description">
+                            <?php _e('Fixed: Scheduled on calendar (e.g., every 7 days). Dynamic: Scheduled from completion.', 'hhmgt'); ?>
+                        </p>
                     </div>
+                    <input type="hidden" name="recurrence_type" id="recurrence_type" value="<?php echo esc_attr($task->recurrence_type ?? 'none'); ?>">
 
                     <?php if ($is_edit && ($task->recurrence_type === 'fixed' || $task->recurrence_type === 'dynamic')): ?>
                         <div class="hhmgt-future-tasks-notice">
@@ -193,6 +192,25 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
 
                     <div class="hhmgt-form-group">
                         <label><?php _e('Add checklist items for this task', 'hhmgt'); ?></label>
+
+                        <?php if (!empty($templates)): ?>
+                            <div style="margin-bottom: 15px;">
+                                <label for="load-template"><?php _e('Or load from template:', 'hhmgt'); ?></label>
+                                <select id="load-template" style="width: auto; margin-right: 10px;">
+                                    <option value=""><?php _e('-- Select Template --', 'hhmgt'); ?></option>
+                                    <?php foreach ($templates as $template): ?>
+                                        <option value="<?php echo esc_attr($template->id); ?>" data-items="<?php echo esc_attr($template->checklist_items); ?>">
+                                            <?php echo esc_html($template->template_name); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button type="button" class="button" id="load-template-btn">
+                                    <span class="material-symbols-outlined">download</span>
+                                    <?php _e('Load Template', 'hhmgt'); ?>
+                                </button>
+                            </div>
+                        <?php endif; ?>
+
                         <div id="checklist-items">
                             <?php
                             $checklist_items = !empty($task->checklist_items) ? json_decode($task->checklist_items, true) : array();
@@ -499,11 +517,23 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
 
 <script>
 jQuery(document).ready(function($) {
-    // Show/hide recurrence pattern based on type
-    $('#recurrence_type').on('change', function() {
-        const type = $(this).val();
-        $('#recurrence_pattern_group').toggle(type !== 'none');
+    // Show/hide recurrence pattern based on is_recurring
+    $('#is_recurring').on('change', function() {
+        const isRecurring = $(this).val() === '1';
+        $('#recurrence_pattern_group').toggle(isRecurring);
+        if (!isRecurring) {
+            $('#recurrence_type').val('none');
+        }
     }).trigger('change');
+
+    // Update recurrence_type based on selected pattern
+    $('#recurrence_pattern_id').on('change', function() {
+        const $selected = $(this).find(':selected');
+        const intervalType = $selected.data('type');
+        if (intervalType) {
+            $('#recurrence_type').val(intervalType);
+        }
+    });
 
     // Show/hide location hierarchy based on multi-location checkbox
     $('#applies_to_multiple_locations').on('change', function() {
@@ -528,6 +558,42 @@ jQuery(document).ready(function($) {
     // Remove checklist item
     $(document).on('click', '.hhmgt-remove-item', function() {
         $(this).closest('.hhmgt-checklist-item').remove();
+    });
+
+    // Load checklist template
+    $('#load-template-btn').on('click', function() {
+        const $selected = $('#load-template').find(':selected');
+        const itemsJson = $selected.data('items');
+
+        if (!itemsJson) {
+            alert('<?php esc_attr_e('Please select a template first.', 'hhmgt'); ?>');
+            return;
+        }
+
+        if (!confirm('<?php esc_attr_e('This will replace your current checklist items. Continue?', 'hhmgt'); ?>')) {
+            return;
+        }
+
+        // Clear existing items
+        $('#checklist-items').empty();
+
+        // Parse and add template items
+        const items = JSON.parse(itemsJson);
+        items.forEach(function(item) {
+            const $item = $(`
+                <div class="hhmgt-checklist-item">
+                    <span class="material-symbols-outlined hhmgt-drag-handle">drag_indicator</span>
+                    <input type="text" name="checklist_items[]" value="${item}" placeholder="<?php esc_attr_e('Checklist item...', 'hhmgt'); ?>">
+                    <button type="button" class="button hhmgt-remove-item">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `);
+            $('#checklist-items').append($item);
+        });
+
+        // Reset template selector
+        $('#load-template').val('');
     });
 
     // Select/deselect all locations

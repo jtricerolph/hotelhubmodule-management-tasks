@@ -106,7 +106,6 @@ $templates = $wpdb->get_results($wpdb->prepare(
                 <input type="hidden" name="template_id" id="template_id">
                 <input type="hidden" name="action" value="hhmgt_save_template">
                 <input type="hidden" name="location_id" value="<?php echo esc_attr($current_location_id); ?>">
-                <?php wp_nonce_field('hhmgt_save_template', 'template_nonce'); ?>
 
                 <div class="hhmgt-form-group">
                     <label for="template_name"><?php _e('Template Name', 'hhmgt'); ?> <span class="required">*</span></label>
@@ -298,7 +297,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'hhmgt_save_template',
-                nonce: $('#template_nonce').val(),
+                nonce: hhmgtAdmin.nonce,
                 template_id: $('#template_id').val(),
                 template_name: $('#template_name').val(),
                 checklist_items: JSON.stringify(items),

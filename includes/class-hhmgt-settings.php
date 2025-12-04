@@ -218,11 +218,11 @@ class HHMGT_Settings {
                 $this->sync_departments($location_id, $settings['departments'] ?? array());
                 break;
 
-            case 'recurring_patterns':
+            case 'patterns':
                 $this->sync_patterns($location_id, $settings['recurring_patterns'] ?? array());
                 break;
 
-            case 'task_states':
+            case 'states':
                 $this->sync_states($location_id, $settings['task_states'] ?? array());
                 break;
         }
@@ -389,16 +389,21 @@ class HHMGT_Settings {
         global $wpdb;
         $table = $wpdb->prefix . 'hhmgt_location_hierarchy';
 
-        // Delete existing locations for this location
-        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
+        // First pass: Create mapping of old IDs to new IDs
+        $id_mapping = array();
 
-        // Insert new locations
         if (isset($post_data['locations']) && is_array($post_data['locations'])) {
+            // Delete existing locations for this location
+            $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
+
+            // First pass: Insert all locations and build ID mapping
             foreach ($post_data['locations'] as $loc_data) {
                 // Skip empty locations
                 if (empty($loc_data['location_name'])) {
                     continue;
                 }
+
+                $old_id = !empty($loc_data['id']) && $loc_data['id'] !== 'new' ? $loc_data['id'] : null;
 
                 // Build full path
                 $full_path = $loc_data['location_name'];
@@ -406,11 +411,12 @@ class HHMGT_Settings {
                     $full_path .= ' (' . $loc_data['location_type'] . ')';
                 }
 
+                // Insert with parent_id as null for now
                 $wpdb->insert(
                     $table,
                     array(
                         'location_id' => $location_id,
-                        'parent_id' => !empty($loc_data['parent_id']) && $loc_data['parent_id'] !== 'new' ? intval($loc_data['parent_id']) : null,
+                        'parent_id' => null, // Will update in second pass
                         'hierarchy_level' => intval($loc_data['hierarchy_level'] ?? 0),
                         'location_name' => sanitize_text_field($loc_data['location_name']),
                         'location_type' => sanitize_text_field($loc_data['location_type'] ?? ''),
@@ -422,10 +428,34 @@ class HHMGT_Settings {
                     array('%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s')
                 );
 
-                // Update parent_id mapping for children
-                if (!empty($loc_data['id']) && $loc_data['id'] !== 'new') {
-                    // Store mapping of old ID to new ID for parent_id updates
-                    // This is handled in second pass if needed
+                $new_id = $wpdb->insert_id;
+
+                // Map old ID to new ID
+                if ($old_id !== null) {
+                    $id_mapping[$old_id] = $new_id;
+                }
+
+                // Also store the parent_id for second pass
+                $id_mapping['_parent_' . $new_id] = !empty($loc_data['parent_id']) && $loc_data['parent_id'] !== 'new' ? $loc_data['parent_id'] : null;
+            }
+
+            // Second pass: Update parent_id relationships
+            foreach ($id_mapping as $key => $value) {
+                if (strpos($key, '_parent_') === 0) {
+                    $new_id = intval(str_replace('_parent_', '', $key));
+                    $old_parent_id = $value;
+
+                    if ($old_parent_id && isset($id_mapping[$old_parent_id])) {
+                        $new_parent_id = $id_mapping[$old_parent_id];
+
+                        $wpdb->update(
+                            $table,
+                            array('parent_id' => $new_parent_id),
+                            array('id' => $new_id),
+                            array('%d'),
+                            array('%d')
+                        );
+                    }
                 }
             }
         }
@@ -435,7 +465,7 @@ class HHMGT_Settings {
      * AJAX: Save checklist template
      */
     public function ajax_save_template() {
-        check_ajax_referer('hhmgt_save_template', 'nonce');
+        check_ajax_referer('hhmgt_admin_nonce', 'nonce');
 
         if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Insufficient permissions', 'hhmgt')));
