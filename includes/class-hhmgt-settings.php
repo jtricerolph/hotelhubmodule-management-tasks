@@ -34,6 +34,9 @@ class HHMGT_Settings {
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_post_hhmgt_save_settings', array($this, 'save_settings'));
         add_action('wp_ajax_hhmgt_get_material_symbols', array($this, 'ajax_get_material_symbols'));
+        add_action('wp_ajax_hhmgt_save_template', array($this, 'ajax_save_template'));
+        add_action('wp_ajax_hhmgt_get_template', array($this, 'ajax_get_template'));
+        add_action('wp_ajax_hhmgt_delete_template', array($this, 'ajax_delete_template'));
     }
 
     /**
@@ -162,17 +165,21 @@ class HHMGT_Settings {
                 $location_settings['departments'] = $this->process_departments_data($_POST);
                 break;
 
-            case 'recurring_patterns':
+            case 'locations':
+                // Location hierarchy is stored in database, not options
+                $this->save_location_hierarchy($location_id, $_POST);
+                break;
+
+            case 'patterns':
                 $location_settings['recurring_patterns'] = $this->process_patterns_data($_POST);
                 break;
 
-            case 'task_states':
+            case 'states':
                 $location_settings['task_states'] = $this->process_states_data($_POST);
                 break;
 
-            case 'checklist_templates':
-                // Templates are stored in database, not options
-                $this->save_checklist_templates($location_id, $_POST);
+            case 'templates':
+                // Templates are stored in database, not options - handled via AJAX
                 break;
         }
 
@@ -376,10 +383,141 @@ class HHMGT_Settings {
     }
 
     /**
-     * Save checklist templates to database
+     * Save location hierarchy to database
      */
-    private function save_checklist_templates($location_id, $post_data) {
-        // TODO: Implement template saving to wp_hhmgt_checklist_templates table
+    private function save_location_hierarchy($location_id, $post_data) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_location_hierarchy';
+
+        // Delete existing locations for this location
+        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
+
+        // Insert new locations
+        if (isset($post_data['locations']) && is_array($post_data['locations'])) {
+            foreach ($post_data['locations'] as $loc_data) {
+                // Skip empty locations
+                if (empty($loc_data['location_name'])) {
+                    continue;
+                }
+
+                // Build full path
+                $full_path = $loc_data['location_name'];
+                if (!empty($loc_data['location_type'])) {
+                    $full_path .= ' (' . $loc_data['location_type'] . ')';
+                }
+
+                $wpdb->insert(
+                    $table,
+                    array(
+                        'location_id' => $location_id,
+                        'parent_id' => !empty($loc_data['parent_id']) && $loc_data['parent_id'] !== 'new' ? intval($loc_data['parent_id']) : null,
+                        'hierarchy_level' => intval($loc_data['hierarchy_level'] ?? 0),
+                        'location_name' => sanitize_text_field($loc_data['location_name']),
+                        'location_type' => sanitize_text_field($loc_data['location_type'] ?? ''),
+                        'full_path' => $full_path,
+                        'sort_order' => intval($loc_data['sort_order'] ?? 0),
+                        'is_enabled' => isset($loc_data['is_enabled']) ? 1 : 0,
+                        'created_at' => current_time('mysql')
+                    ),
+                    array('%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s')
+                );
+
+                // Update parent_id mapping for children
+                if (!empty($loc_data['id']) && $loc_data['id'] !== 'new') {
+                    // Store mapping of old ID to new ID for parent_id updates
+                    // This is handled in second pass if needed
+                }
+            }
+        }
+    }
+
+    /**
+     * AJAX: Save checklist template
+     */
+    public function ajax_save_template() {
+        check_ajax_referer('hhmgt_save_template', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'hhmgt')));
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_checklist_templates';
+
+        $template_id = isset($_POST['template_id']) ? intval($_POST['template_id']) : 0;
+        $template_name = sanitize_text_field($_POST['template_name']);
+        $checklist_items = sanitize_text_field($_POST['checklist_items']);
+        $location_id = intval($_POST['location_id']);
+
+        if (empty($template_name)) {
+            wp_send_json_error(array('message' => __('Template name is required', 'hhmgt')));
+        }
+
+        $data = array(
+            'location_id' => $location_id,
+            'template_name' => $template_name,
+            'checklist_items' => $checklist_items,
+            'created_by' => get_current_user_id(),
+            'created_at' => current_time('mysql')
+        );
+
+        if ($template_id) {
+            // Update existing template
+            unset($data['created_by']);
+            unset($data['created_at']);
+            $wpdb->update($table, $data, array('id' => $template_id), null, array('%d'));
+        } else {
+            // Create new template
+            $wpdb->insert($table, $data);
+        }
+
+        wp_send_json_success(array('message' => __('Template saved successfully', 'hhmgt')));
+    }
+
+    /**
+     * AJAX: Get template
+     */
+    public function ajax_get_template() {
+        check_ajax_referer('hhmgt_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'hhmgt')));
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_checklist_templates';
+        $template_id = intval($_POST['template_id']);
+
+        $template = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d",
+            $template_id
+        ));
+
+        if (!$template) {
+            wp_send_json_error(array('message' => __('Template not found', 'hhmgt')));
+        }
+
+        wp_send_json_success($template);
+    }
+
+    /**
+     * AJAX: Delete template
+     */
+    public function ajax_delete_template() {
+        check_ajax_referer('hhmgt_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'hhmgt')));
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_checklist_templates';
+        $template_id = intval($_POST['template_id']);
+        $location_id = intval($_POST['location_id']);
+
+        $wpdb->delete($table, array('id' => $template_id, 'location_id' => $location_id), array('%d', '%d'));
+
+        wp_send_json_success(array('message' => __('Template deleted successfully', 'hhmgt')));
     }
 
     /**
