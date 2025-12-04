@@ -56,6 +56,7 @@ class HotelHub_Management_Tasks {
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-ajax.php';
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-heartbeat.php';
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-scheduler.php';
+        require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-bulk-update.php';
     }
 
     /**
@@ -138,7 +139,7 @@ class HotelHub_Management_Tasks {
         global $wpdb;
         $charset_collate = $wpdb->get_charset_collate();
 
-        // Tasks table - Main task definitions
+        // Tasks table - Main task definitions (NOW SUPPORTS MULTI-LOCATION!)
         $table_tasks = $wpdb->prefix . 'hhmgt_tasks';
         $sql_tasks = "CREATE TABLE {$table_tasks} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -148,21 +149,21 @@ class HotelHub_Management_Tasks {
             recurrence_type ENUM('none', 'fixed', 'dynamic') DEFAULT 'none',
             recurrence_pattern_id BIGINT(20) UNSIGNED DEFAULT NULL,
             department_id BIGINT(20) UNSIGNED DEFAULT NULL,
-            location_hierarchy_id BIGINT(20) UNSIGNED DEFAULT NULL COMMENT 'Specific location within hotel',
             checklist_template_id BIGINT(20) UNSIGNED DEFAULT NULL,
             checklist_items TEXT COMMENT 'JSON array of checklist items',
             reference_photos TEXT COMMENT 'JSON array of photo attachment IDs',
             require_completion_photo BOOLEAN DEFAULT FALSE,
             completion_reminder_text TEXT,
             is_active BOOLEAN DEFAULT TRUE,
+            applies_to_multiple_locations BOOLEAN DEFAULT FALSE COMMENT 'If true, use task_locations junction table',
             created_by BIGINT(20) UNSIGNED NOT NULL,
             created_at DATETIME NOT NULL,
             updated_at DATETIME DEFAULT NULL,
             PRIMARY KEY (id),
             KEY location_idx (location_id),
             KEY department_idx (department_id),
-            KEY location_hierarchy_idx (location_hierarchy_id),
-            KEY active_idx (is_active)
+            KEY active_idx (is_active),
+            KEY multi_location_idx (applies_to_multiple_locations)
         ) $charset_collate;";
 
         // Task instances table - Individual occurrences
@@ -170,7 +171,8 @@ class HotelHub_Management_Tasks {
         $sql_instances = "CREATE TABLE {$table_instances} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             task_id BIGINT(20) UNSIGNED NOT NULL,
-            location_id BIGINT(20) UNSIGNED NOT NULL,
+            location_id BIGINT(20) UNSIGNED NOT NULL COMMENT 'Hotel/workforce location ID',
+            location_hierarchy_id BIGINT(20) UNSIGNED DEFAULT NULL COMMENT 'Specific room/area (for multi-location tasks)',
             scheduled_date DATE NOT NULL COMMENT 'When task was scheduled',
             due_date DATE NOT NULL COMMENT 'When task is due',
             status_id BIGINT(20) UNSIGNED DEFAULT NULL,
@@ -182,9 +184,10 @@ class HotelHub_Management_Tasks {
             PRIMARY KEY (id),
             KEY task_date_idx (task_id, due_date),
             KEY location_date_idx (location_id, due_date),
+            KEY location_hierarchy_idx (location_hierarchy_id),
             KEY status_idx (status_id),
             KEY due_date_idx (due_date),
-            UNIQUE KEY unique_task_date (task_id, scheduled_date)
+            UNIQUE KEY unique_task_location_date (task_id, location_hierarchy_id, scheduled_date)
         ) $charset_collate;";
 
         // Departments table
@@ -284,6 +287,19 @@ class HotelHub_Management_Tasks {
             KEY carry_forward_idx (carry_forward)
         ) $charset_collate;";
 
+        // Task locations junction table - MULTI-LOCATION SUPPORT!
+        $table_task_locations = $wpdb->prefix . 'hhmgt_task_locations';
+        $sql_task_locations = "CREATE TABLE {$table_task_locations} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            task_id BIGINT(20) UNSIGNED NOT NULL,
+            location_hierarchy_id BIGINT(20) UNSIGNED NOT NULL COMMENT 'Specific room/area within hotel',
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            KEY task_idx (task_id),
+            KEY location_idx (location_hierarchy_id),
+            UNIQUE KEY unique_task_location (task_id, location_hierarchy_id)
+        ) $charset_collate;";
+
         // Create tables
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_tasks);
@@ -294,6 +310,7 @@ class HotelHub_Management_Tasks {
         dbDelta($sql_states);
         dbDelta($sql_templates);
         dbDelta($sql_notes);
+        dbDelta($sql_task_locations);
 
         // Update DB version
         update_option('hhmgt_db_version', HHMGT_VERSION);

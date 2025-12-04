@@ -165,23 +165,88 @@ class HHMGT_Scheduler {
     }
 
     /**
-     * Create a new task instance
+     * Create a new task instance (or multiple if multi-location)
      *
      * @param object $task Task object with pattern data
      * @param string $scheduled_date Date to schedule (Y-m-d format)
-     * @return int|false New instance ID or false on failure
+     * @return int|array New instance ID(s) or false on failure
      */
     private function create_task_instance($task, $scheduled_date) {
+        global $wpdb;
+
+        // Check if this is a multi-location task
+        if ($task->applies_to_multiple_locations) {
+            return $this->create_multi_location_instances($task, $scheduled_date);
+        }
+
+        // Single location task - create one instance
+        return $this->create_single_instance($task, $scheduled_date, null);
+    }
+
+    /**
+     * Create instances for multi-location task
+     *
+     * @param object $task Task object
+     * @param string $scheduled_date Scheduled date
+     * @return array Array of created instance IDs
+     */
+    private function create_multi_location_instances($task, $scheduled_date) {
+        global $wpdb;
+
+        $table_task_locations = $wpdb->prefix . 'hhmgt_task_locations';
+
+        // Get all assigned locations
+        $assigned_locations = $wpdb->get_results($wpdb->prepare(
+            "SELECT location_hierarchy_id FROM {$table_task_locations}
+            WHERE task_id = %d",
+            $task->id
+        ));
+
+        if (empty($assigned_locations)) {
+            return array(); // No locations assigned
+        }
+
+        $instance_ids = array();
+
+        // Create instance for each location
+        foreach ($assigned_locations as $loc) {
+            $instance_id = $this->create_single_instance($task, $scheduled_date, $loc->location_hierarchy_id);
+            if ($instance_id) {
+                $instance_ids[] = $instance_id;
+            }
+        }
+
+        return $instance_ids;
+    }
+
+    /**
+     * Create a single task instance
+     *
+     * @param object $task Task object
+     * @param string $scheduled_date Scheduled date
+     * @param int|null $location_hierarchy_id Specific location (for multi-location tasks)
+     * @return int|false Instance ID or false
+     */
+    private function create_single_instance($task, $scheduled_date, $location_hierarchy_id = null) {
         global $wpdb;
 
         $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
         $table_states = $wpdb->prefix . 'hhmgt_task_states';
 
-        // Check if instance already exists for this date
+        // Check if instance already exists for this task/location/date
+        $where = "task_id = %d AND scheduled_date = %s";
+        $params = array($task->id, $scheduled_date);
+
+        if ($location_hierarchy_id) {
+            $where .= " AND location_hierarchy_id = %d";
+            $params[] = $location_hierarchy_id;
+        } else {
+            $where .= " AND location_hierarchy_id IS NULL";
+        }
+
         $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table_instances}
-            WHERE task_id = %d AND scheduled_date = %s",
-            $task->id, $scheduled_date
+            "SELECT id FROM {$table_instances} WHERE {$where}",
+            $params
         ));
 
         if ($existing) {
@@ -202,13 +267,14 @@ class HHMGT_Scheduler {
             array(
                 'task_id' => $task->id,
                 'location_id' => $task->location_id,
+                'location_hierarchy_id' => $location_hierarchy_id,
                 'scheduled_date' => $scheduled_date,
                 'due_date' => $scheduled_date,
                 'status_id' => $pending_state ? $pending_state->id : null,
                 'checklist_state' => json_encode(array()),
                 'created_at' => current_time('mysql')
             ),
-            array('%d', '%d', '%s', '%s', '%d', '%s', '%s')
+            array('%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s')
         );
 
         if ($inserted) {

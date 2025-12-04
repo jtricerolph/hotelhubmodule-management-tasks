@@ -180,6 +180,9 @@ class HHMGT_Settings {
         $all_settings[$location_id] = $location_settings;
         update_option(self::OPTION_NAME, $all_settings);
 
+        // Sync to database tables (for efficient querying)
+        $this->sync_to_database($location_id, $location_settings, $tab);
+
         // Redirect back
         wp_redirect(add_query_arg(
             array(
@@ -191,6 +194,118 @@ class HHMGT_Settings {
             admin_url('admin.php')
         ));
         exit;
+    }
+
+    /**
+     * Sync settings to database tables
+     *
+     * @param int $location_id Location ID
+     * @param array $settings Location settings
+     * @param string $tab Current tab
+     */
+    private function sync_to_database($location_id, $settings, $tab) {
+        global $wpdb;
+
+        switch ($tab) {
+            case 'departments':
+                $this->sync_departments($location_id, $settings['departments'] ?? array());
+                break;
+
+            case 'recurring_patterns':
+                $this->sync_patterns($location_id, $settings['recurring_patterns'] ?? array());
+                break;
+
+            case 'task_states':
+                $this->sync_states($location_id, $settings['task_states'] ?? array());
+                break;
+        }
+    }
+
+    /**
+     * Sync departments to database
+     */
+    private function sync_departments($location_id, $departments) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_departments';
+
+        // Delete existing departments for this location
+        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
+
+        // Insert new departments
+        foreach ($departments as $dept) {
+            $wpdb->insert(
+                $table,
+                array(
+                    'location_id' => $location_id,
+                    'dept_name' => $dept['dept_name'],
+                    'dept_slug' => $dept['dept_slug'],
+                    'icon_name' => $dept['icon_name'],
+                    'color_hex' => $dept['color_hex'],
+                    'description' => $dept['description'] ?? '',
+                    'is_enabled' => $dept['is_enabled'] ? 1 : 0,
+                    'sort_order' => $dept['sort_order'],
+                    'created_at' => current_time('mysql')
+                ),
+                array('%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s')
+            );
+        }
+    }
+
+    /**
+     * Sync recurring patterns to database
+     */
+    private function sync_patterns($location_id, $patterns) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_recurring_patterns';
+
+        // Delete existing patterns for this location
+        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
+
+        // Insert new patterns
+        foreach ($patterns as $pattern) {
+            $wpdb->insert(
+                $table,
+                array(
+                    'location_id' => $location_id,
+                    'pattern_name' => $pattern['pattern_name'],
+                    'interval_type' => $pattern['interval_type'],
+                    'interval_days' => $pattern['interval_days'],
+                    'lead_time_days' => $pattern['lead_time_days'],
+                    'is_enabled' => $pattern['is_enabled'] ? 1 : 0,
+                    'created_at' => current_time('mysql')
+                ),
+                array('%d', '%s', '%s', '%d', '%d', '%d', '%s')
+            );
+        }
+    }
+
+    /**
+     * Sync task states to database
+     */
+    private function sync_states($location_id, $states) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_task_states';
+
+        // Delete existing states for this location
+        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
+
+        // Insert new states
+        foreach ($states as $state) {
+            $wpdb->insert(
+                $table,
+                array(
+                    'location_id' => $location_id,
+                    'state_name' => $state['state_name'],
+                    'state_slug' => $state['state_slug'],
+                    'color_hex' => $state['color_hex'],
+                    'is_default' => isset($state['is_default']) && $state['is_default'] ? 1 : 0,
+                    'is_complete_state' => isset($state['is_complete_state']) && $state['is_complete_state'] ? 1 : 0,
+                    'is_enabled' => $state['is_enabled'] ? 1 : 0,
+                    'sort_order' => $state['sort_order']
+                ),
+                array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d')
+            );
+        }
     }
 
     /**
