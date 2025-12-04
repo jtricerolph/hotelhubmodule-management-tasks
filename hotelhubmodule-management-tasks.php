@@ -57,6 +57,7 @@ class HotelHub_Management_Tasks {
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-heartbeat.php';
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-scheduler.php';
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-bulk-update.php';
+        require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-tasks-admin.php';
     }
 
     /**

@@ -43,6 +43,9 @@ class HHMGT_Core {
         // ✅ CORRECT: Register permissions (ACTION, using OBJECT method)
         add_action('wfa_register_permissions', array($this, 'register_permissions'));
 
+        // Admin menu
+        add_action('admin_menu', array($this, 'register_admin_menu'));
+
         // Enqueue assets
         add_action('wp_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
@@ -57,6 +60,7 @@ class HHMGT_Core {
         HHMGT_Ajax::instance();
         HHMGT_Heartbeat::instance();
         HHMGT_Scheduler::instance();
+        HHMGT_Tasks_Admin::instance();
     }
 
     /**
@@ -132,6 +136,52 @@ class HHMGT_Core {
 
         // Future: Dynamic department permissions can be registered here
         // Example: Loop through departments and register {dept_slug}_tasks_access
+    }
+
+    /**
+     * Register admin menu items
+     */
+    public function register_admin_menu() {
+        // Main tasks menu
+        add_menu_page(
+            __('Tasks', 'hhmgt'),
+            __('Tasks', 'hhmgt'),
+            'manage_options',
+            'hhmgt-tasks',
+            array('HHMGT_Tasks_Admin', 'render_list'),
+            'dashicons-clipboard',
+            30
+        );
+
+        // Tasks list (same as main menu)
+        add_submenu_page(
+            'hhmgt-tasks',
+            __('All Tasks', 'hhmgt'),
+            __('All Tasks', 'hhmgt'),
+            'manage_options',
+            'hhmgt-tasks',
+            array('HHMGT_Tasks_Admin', 'render_list')
+        );
+
+        // Create/Edit task (hidden from menu)
+        add_submenu_page(
+            null, // Hidden
+            __('Edit Task', 'hhmgt'),
+            __('Edit Task', 'hhmgt'),
+            'manage_options',
+            'hhmgt-edit-task',
+            array('HHMGT_Tasks_Admin', 'render_edit')
+        );
+
+        // Settings submenu
+        add_submenu_page(
+            'hhmgt-tasks',
+            __('Settings', 'hhmgt'),
+            __('Settings', 'hhmgt'),
+            'manage_options',
+            'hhmgt-settings',
+            array('HHMGT_Settings', 'render')
+        );
     }
 
     /**
@@ -225,11 +275,22 @@ class HHMGT_Core {
         // WordPress color picker
         wp_enqueue_style('wp-color-picker');
 
+        // WordPress media library (for photo uploads)
+        wp_enqueue_media();
+
         // Admin CSS
         wp_enqueue_style(
             'hhmgt-admin',
             HHMGT_PLUGIN_URL . 'assets/css/admin.css',
             array('wp-color-picker'),
+            HHMGT_VERSION
+        );
+
+        // Modal CSS (for future tasks modal)
+        wp_enqueue_style(
+            'hhmgt-modal',
+            HHMGT_PLUGIN_URL . 'assets/css/modal.css',
+            array(),
             HHMGT_VERSION
         );
 
