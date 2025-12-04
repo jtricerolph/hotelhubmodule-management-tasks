@@ -185,6 +185,15 @@ $templates = $wpdb->get_results($wpdb->prepare(
     padding-top: 20px;
     border-top: 1px solid #e5e7eb;
     text-align: right;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.hhmgt-modal-footer .button {
+    min-width: 100px;
+    padding: 6px 16px !important;
+    height: auto !important;
 }
 
 #template-checklist-items {
@@ -362,7 +371,8 @@ jQuery(document).ready(function($) {
                     openTemplateModal(templateId);
                     $('#template_name').val(template.template_name);
 
-                    const items = JSON.parse(template.checklist_items);
+                    // checklist_items is already an array from the server
+                    const items = template.checklist_items || [];
                     items.forEach(function(item) {
                         addTemplateItem(item);
                     });

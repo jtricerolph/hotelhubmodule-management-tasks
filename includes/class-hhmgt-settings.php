@@ -519,11 +519,17 @@ class HHMGT_Settings {
 
         $template_id = isset($_POST['template_id']) ? intval($_POST['template_id']) : 0;
         $template_name = sanitize_text_field($_POST['template_name']);
-        $checklist_items = sanitize_text_field($_POST['checklist_items']);
+        $checklist_items = wp_unslash($_POST['checklist_items']); // Don't sanitize JSON - validate it instead
         $location_id = intval($_POST['location_id']);
 
         if (empty($template_name)) {
             wp_send_json_error(array('message' => __('Template name is required', 'hhmgt')));
+        }
+
+        // Validate that checklist_items is valid JSON
+        $items_array = json_decode($checklist_items, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error(array('message' => __('Invalid checklist items format', 'hhmgt')));
         }
 
         $data = array(
@@ -569,6 +575,9 @@ class HHMGT_Settings {
         if (!$template) {
             wp_send_json_error(array('message' => __('Template not found', 'hhmgt')));
         }
+
+        // Decode checklist_items so it's sent as an array, not a JSON string
+        $template->checklist_items = json_decode($template->checklist_items, true);
 
         wp_send_json_success($template);
     }
