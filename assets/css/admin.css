@@ -1,0 +1,447 @@
+/**
+ * Admin Styles
+ *
+ * Styles for admin settings interface
+ *
+ * @package HotelHub_Management_Tasks
+ */
+
+/* ========================================================================
+   Settings Wrap
+   ======================================================================== */
+
+.hhmgt-settings-wrap {
+    margin-top: 20px;
+}
+
+.hhmgt-location-tabs,
+.hhmgt-settings-tabs {
+    margin-bottom: 0;
+}
+
+.hhmgt-settings-tabs {
+    border-top: 1px solid #c3c4c7;
+    padding-top: 0;
+}
+
+.hhmgt-settings-content {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-top: none;
+    padding: 30px;
+    margin-bottom: 20px;
+}
+
+.hhmgt-settings-section {
+    margin-bottom: 40px;
+}
+
+.hhmgt-settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.hhmgt-settings-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* ========================================================================
+   Repeater Fields
+   ======================================================================== */
+
+.hhmgt-repeater-list {
+    margin: 15px 0;
+}
+
+.hhmgt-repeater-item {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    transition: box-shadow 0.2s;
+}
+
+.hhmgt-repeater-item:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.hhmgt-repeater-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f6f7f7;
+    border-bottom: 1px solid #c3c4c7;
+    cursor: pointer;
+    user-select: none;
+}
+
+.hhmgt-repeater-header:hover {
+    background: #f0f0f1;
+}
+
+.hhmgt-drag-handle {
+    margin-right: 10px;
+    color: #8c8f94;
+    cursor: move;
+    display: flex;
+    align-items: center;
+}
+
+.hhmgt-drag-handle .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+.hhmgt-repeater-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.hhmgt-repeater-title strong {
+    color: #1d2327;
+}
+
+.hhmgt-repeater-toggle {
+    padding: 4px 8px;
+    min-height: auto;
+    line-height: 1;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.hhmgt-repeater-toggle:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.hhmgt-repeater-toggle .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+.hhmgt-repeater-content {
+    padding: 20px;
+}
+
+.hhmgt-repeater-actions {
+    padding-top: 15px;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 15px;
+}
+
+.hhmgt-sortable-placeholder {
+    background: #f0f0f1;
+    border: 2px dashed #c3c4c7;
+    border-radius: 4px;
+    visibility: visible !important;
+}
+
+/* ========================================================================
+   Icon Picker
+   ======================================================================== */
+
+.hhmgt-icon-picker-wrapper {
+    position: relative;
+}
+
+.hhmgt-icon-picker-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+}
+
+.hhmgt-icon-picker-button .hhmgt-icon-preview {
+    font-size: 20px;
+    font-family: 'Material Symbols Outlined';
+}
+
+.hhmgt-dept-icon-preview {
+    font-size: 20px;
+    font-family: 'Material Symbols Outlined';
+}
+
+/* Icon Picker Modal */
+.hhmgt-icon-picker-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hhmgt-icon-picker-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.hhmgt-icon-picker-content {
+    position: relative;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.hhmgt-icon-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.hhmgt-icon-picker-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.hhmgt-icon-picker-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #646970;
+    display: flex;
+    align-items: center;
+}
+
+.hhmgt-icon-picker-close:hover {
+    color: #000;
+}
+
+.hhmgt-icon-picker-filters {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.hhmgt-icon-search {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.hhmgt-icon-search:focus {
+    outline: none;
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+.hhmgt-icon-category-filter {
+    min-width: 150px;
+    padding: 8px 12px;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.hhmgt-icon-picker-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    max-height: 400px;
+}
+
+.hhmgt-icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fff;
+}
+
+.hhmgt-icon-item:hover {
+    border-color: #2271b1;
+    background: #f0f6fc;
+    transform: translateY(-2px);
+}
+
+.hhmgt-icon-item.selected {
+    border-color: #2271b1;
+    background: #2271b1;
+    color: #fff;
+}
+
+.hhmgt-icon-item .material-symbols-outlined {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+.hhmgt-icon-item.selected .material-symbols-outlined {
+    color: #fff;
+}
+
+.hhmgt-icon-name {
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.2;
+    text-transform: capitalize;
+    color: #646970;
+}
+
+.hhmgt-icon-item.selected .hhmgt-icon-name {
+    color: #fff;
+}
+
+.hhmgt-no-icons {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: #646970;
+}
+
+.hhmgt-icon-picker-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    text-align: right;
+}
+
+/* ========================================================================
+   State Badges
+   ======================================================================== */
+
+.hhmgt-state-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.hhmgt-default-badge,
+.hhmgt-complete-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    margin-left: 8px;
+}
+
+.hhmgt-complete-badge {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.hhmgt-pattern-meta {
+    color: #646970;
+    font-size: 13px;
+    font-weight: normal;
+    margin-left: 8px;
+}
+
+/* ========================================================================
+   Toggle Switch
+   ======================================================================== */
+
+.hhmgt-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.hhmgt-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.hhmgt-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.hhmgt-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .hhmgt-toggle-slider {
+    background-color: #10b981;
+}
+
+input:focus + .hhmgt-toggle-slider {
+    box-shadow: 0 0 1px #10b981;
+}
+
+input:checked + .hhmgt-toggle-slider:before {
+    transform: translateX(26px);
+}
+
+/* ========================================================================
+   Responsive
+   ======================================================================== */
+
+@media screen and (max-width: 782px) {
+    .hhmgt-icon-picker-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .hhmgt-icon-picker-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
+
+    .hhmgt-icon-picker-filters {
+        flex-direction: column;
+    }
+
+    .hhmgt-icon-category-filter {
+        min-width: auto;
+    }
+}
