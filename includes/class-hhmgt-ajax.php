@@ -96,9 +96,9 @@ class HHMGT_Ajax {
             $where_values[] = $location_type;
         }
 
-        // Filter by specific location
+        // Filter by specific location (use instance's location_hierarchy_id)
         if ($location_filter) {
-            $where_clauses[] = "t.location_hierarchy_id = %d";
+            $where_clauses[] = "i.location_hierarchy_id = %d";
             $where_values[] = $location_filter;
         }
 
@@ -137,7 +137,7 @@ class HHMGT_Ajax {
                 FROM {$table_instances} i
                 INNER JOIN {$table_tasks} t ON i.task_id = t.id
                 LEFT JOIN {$table_departments} d ON t.department_id = d.id
-                LEFT JOIN {$table_locations} l ON t.location_hierarchy_id = l.id
+                LEFT JOIN {$table_locations} l ON i.location_hierarchy_id = l.id
                 LEFT JOIN {$table_states} s ON i.status_id = s.id
                 WHERE {$where_sql}
                 ORDER BY i.due_date ASC, t.task_name ASC";
@@ -146,9 +146,15 @@ class HHMGT_Ajax {
 
         // Debug logging
         error_log("[HHMGT] Task query - Location: $location_id, Date: $date_from to $date_to, Results: " . count($results));
+        error_log("[HHMGT] Filters applied - Dept: '$department', LocType: '$location_type', LocFilter: '$location_filter', Search: '$search', ShowCompleted: " . ($show_completed ? 'yes' : 'no'));
+
         if ($wpdb->last_error) {
             error_log("[HHMGT] SQL Error: " . $wpdb->last_error);
         }
+
+        // Log the actual SQL query for debugging
+        $debug_sql = $wpdb->prepare($sql, $where_values);
+        error_log("[HHMGT] SQL Query: " . $debug_sql);
 
         // Check if task instances exist at all
         $total_instances = $wpdb->get_var($wpdb->prepare(
@@ -156,6 +162,14 @@ class HHMGT_Ajax {
             $location_id
         ));
         error_log("[HHMGT] Total task instances for location $location_id: $total_instances");
+
+        // Check instances in date range
+        $instances_in_range = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table_instances}
+            WHERE location_id = %d AND due_date >= %s AND due_date <= %s",
+            $location_id, $date_from, $date_to
+        ));
+        error_log("[HHMGT] Instances in date range ($date_from to $date_to): $instances_in_range");
 
         // Group results if requested
         $tasks_data = $this->group_tasks($results, $group_by);
