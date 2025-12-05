@@ -852,11 +852,28 @@
         return date.toLocaleString();
     }
 
-    // Initialize on document ready
-    $(document).ready(function() {
+    /**
+     * Initialize module when Hotel Hub App loads it
+     */
+    function tryInit() {
         if ($('.hhmgt-container').length) {
+            debugLog('Container found, initializing...');
             initModule();
+        } else {
+            debugLog('Container not found, waiting for module load...');
+        }
+    }
+
+    // Listen for Hotel Hub App module load event
+    $(document).on('hha-module-loaded', function(event, moduleId) {
+        debugLog('Module load event received:', moduleId);
+        if (moduleId === 'management_tasks') {
+            // Small delay to ensure DOM is ready
+            setTimeout(tryInit, 50);
         }
     });
+
+    // Also try on document ready (for direct page loads)
+    $(document).ready(tryInit);
 
 })(jQuery);
