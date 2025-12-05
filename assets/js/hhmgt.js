@@ -531,7 +531,9 @@
             checklistHTML = '<div class="hhmgt-modal-section"><h4 class="hhmgt-modal-section-title">Checklist</h4><div class="hhmgt-checklist">';
 
             instance.checklist_items.forEach(function(item, index) {
-                const isChecked = instance.checklist_state && instance.checklist_state[index] ? 'checked' : '';
+                // Explicitly check for true boolean value (not truthy)
+                const isChecked = instance.checklist_state && instance.checklist_state[index] === true ? 'checked' : '';
+                debugLog(`Checklist item ${index}: state=${instance.checklist_state ? instance.checklist_state[index] : 'undefined'}, isChecked=${isChecked ? 'yes' : 'no'}`);
                 checklistHTML += `
                     <div class="hhmgt-checklist-item">
                         <input type="checkbox" class="hhmgt-checklist-checkbox" data-index="${index}" ${isChecked} id="check-${index}">
@@ -669,6 +671,8 @@
             checklistState[index] = $(this).is(':checked');
         });
 
+        debugLog('Updating checklist state:', checklistState);
+
         $.ajax({
             url: hhmgtData.ajax_url,
             type: 'POST',
@@ -679,9 +683,15 @@
                 checklist_state: checklistState
             },
             success: function(response) {
-                if (!response.success) {
+                if (response.success) {
+                    debugLog('Checklist updated successfully:', response.data.checklist_state);
+                } else {
+                    console.error('[HHMGT] Checklist update failed:', response);
                     showError(response.data);
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('[HHMGT] Checklist update AJAX error:', {xhr, status, error});
             }
         });
     }

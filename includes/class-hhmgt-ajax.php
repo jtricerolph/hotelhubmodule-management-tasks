@@ -335,12 +335,22 @@ class HHMGT_Ajax {
             wp_send_json_error(array('message' => __('Invalid task instance', 'hhmgt')));
         }
 
+        // Convert string booleans to actual booleans
+        $normalized_state = array();
+        foreach ($checklist_state as $index => $value) {
+            // Handle both boolean and string values ("true"/"false")
+            $normalized_state[$index] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // Debug logging
+        error_log("[HHMGT] Updating checklist for instance $instance_id: " . json_encode($normalized_state));
+
         // Update checklist state
         $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
 
         $updated = $wpdb->update(
             $table_instances,
-            array('checklist_state' => json_encode($checklist_state)),
+            array('checklist_state' => json_encode($normalized_state)),
             array('id' => $instance_id),
             array('%s'),
             array('%d')
@@ -351,7 +361,8 @@ class HHMGT_Ajax {
         }
 
         wp_send_json_success(array(
-            'message' => __('Checklist updated', 'hhmgt')
+            'message' => __('Checklist updated', 'hhmgt'),
+            'checklist_state' => $normalized_state
         ));
     }
 
