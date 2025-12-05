@@ -239,11 +239,12 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
                                     <option value=""><?php _e('-- Select Template --', 'hhmgt'); ?></option>
                                     <?php foreach ($templates as $template): ?>
                                         <?php
-                                        // Decode JSON from database and re-encode for JavaScript
+                                        // Decode JSON from database and encode as base64 for safe HTML attribute passing
                                         $items = json_decode($template->checklist_items, true);
                                         $items_json = !empty($items) ? json_encode($items) : '[]';
+                                        $items_base64 = base64_encode($items_json);
                                         ?>
-                                        <option value="<?php echo esc_attr($template->id); ?>" data-items='<?php echo esc_attr($items_json); ?>'>
+                                        <option value="<?php echo esc_attr($template->id); ?>" data-items="<?php echo esc_attr($items_base64); ?>">
                                             <?php echo esc_html($template->template_name); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -607,9 +608,9 @@ jQuery(document).ready(function($) {
     // Load checklist template
     $('#load-template-btn').on('click', function() {
         const $selected = $('#load-template').find(':selected');
-        const itemsJson = $selected.data('items');
+        const itemsBase64 = $selected.data('items');
 
-        if (!itemsJson) {
+        if (!itemsBase64) {
             alert('<?php esc_attr_e('Please select a template first.', 'hhmgt'); ?>');
             return;
         }
@@ -622,7 +623,8 @@ jQuery(document).ready(function($) {
             // Clear existing items
             $('#checklist-items').empty();
 
-            // Parse and add template items
+            // Decode base64 and parse JSON
+            const itemsJson = atob(itemsBase64);
             const items = JSON.parse(itemsJson);
 
             if (!Array.isArray(items) || items.length === 0) {
