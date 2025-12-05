@@ -144,6 +144,19 @@ class HHMGT_Ajax {
 
         $results = $wpdb->get_results($wpdb->prepare($sql, $where_values));
 
+        // Debug logging
+        error_log("[HHMGT] Task query - Location: $location_id, Date: $date_from to $date_to, Results: " . count($results));
+        if ($wpdb->last_error) {
+            error_log("[HHMGT] SQL Error: " . $wpdb->last_error);
+        }
+
+        // Check if task instances exist at all
+        $total_instances = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table_instances} WHERE location_id = %d",
+            $location_id
+        ));
+        error_log("[HHMGT] Total task instances for location $location_id: $total_instances");
+
         // Group results if requested
         $tasks_data = $this->group_tasks($results, $group_by);
 

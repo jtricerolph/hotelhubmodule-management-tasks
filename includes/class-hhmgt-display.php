@@ -84,7 +84,7 @@ class HHMGT_Display {
                     <!-- Department filter -->
                     <div class="hhmgt-filter-group">
                         <label for="filter-department"><?php esc_html_e('Department', 'hhmgt'); ?></label>
-                        <select id="filter-department" class="hhmgt-filter-select" multiple>
+                        <select id="filter-department" class="hhmgt-filter-select">
                             <option value=""><?php esc_html_e('All Departments', 'hhmgt'); ?></option>
                             <?php if (!empty($settings['departments'])): ?>
                                 <?php foreach ($settings['departments'] as $dept): ?>
