@@ -22,7 +22,35 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
         </div>
     <?php endif; ?>
 
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="task-form">
+    <?php if (empty($locations)): ?>
+        <div class="notice notice-warning">
+            <p><?php _e('No locations found. Please ensure Hotel Hub App is properly configured.', 'hhmgt'); ?></p>
+        </div>
+        <?php return; ?>
+    <?php endif; ?>
+
+    <!-- Location Tabs -->
+    <h2 class="nav-tab-wrapper hhmgt-location-tabs">
+        <?php foreach ($locations as $location): ?>
+            <?php
+            $is_active = ($location['id'] == $current_location_id);
+            $tab_class = 'nav-tab' . ($is_active ? ' nav-tab-active' : '');
+            $tab_url = add_query_arg(array(
+                'page' => 'hhmgt-edit-task',
+                'location_id' => $location['id']
+            ), admin_url('admin.php'));
+            // Preserve task_id if editing
+            if ($is_edit) {
+                $tab_url = add_query_arg('task_id', $task->id, $tab_url);
+            }
+            ?>
+            <a href="<?php echo esc_url($tab_url); ?>" class="<?php echo esc_attr($tab_class); ?>">
+                <?php echo esc_html($location['name']); ?>
+            </a>
+        <?php endforeach; ?>
+    </h2>
+
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="task-form" style="border-top: 1px solid #c3c4c7; padding-top: 20px; margin-top: 0;">
         <?php wp_nonce_field('hhmgt_save_task', 'hhmgt_task_nonce'); ?>
         <input type="hidden" name="action" value="hhmgt_save_task">
         <input type="hidden" name="task_id" value="<?php echo esc_attr($task->id ?? ''); ?>">

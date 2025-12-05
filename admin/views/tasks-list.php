@@ -28,21 +28,29 @@ if (!defined('ABSPATH')) {
         </div>
     <?php endif; ?>
 
-    <hr class="wp-header-end">
-
-    <!-- Location Selector -->
-    <?php if (count($locations) > 1): ?>
-        <div class="hhmgt-location-selector">
-            <label for="location-select"><?php _e('Location:', 'hhmgt'); ?></label>
-            <select id="location-select" onchange="window.location.href = this.value">
-                <?php foreach ($locations as $location): ?>
-                    <option value="<?php echo esc_url(add_query_arg('location_id', $location['id'])); ?>" <?php selected($current_location_id, $location['id']); ?>>
-                        <?php echo esc_html($location['name']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+    <?php if (empty($locations)): ?>
+        <div class="notice notice-warning">
+            <p><?php _e('No locations found. Please ensure Hotel Hub App is properly configured.', 'hhmgt'); ?></p>
         </div>
+        <?php return; ?>
     <?php endif; ?>
+
+    <!-- Location Tabs -->
+    <h2 class="nav-tab-wrapper hhmgt-location-tabs">
+        <?php foreach ($locations as $location): ?>
+            <?php
+            $is_active = ($location['id'] == $current_location_id);
+            $tab_class = 'nav-tab' . ($is_active ? ' nav-tab-active' : '');
+            $tab_url = add_query_arg(array(
+                'page' => 'hhmgt-tasks',
+                'location_id' => $location['id']
+            ), admin_url('admin.php'));
+            ?>
+            <a href="<?php echo esc_url($tab_url); ?>" class="<?php echo esc_attr($tab_class); ?>">
+                <?php echo esc_html($location['name']); ?>
+            </a>
+        <?php endforeach; ?>
+    </h2>
 
     <!-- Filters -->
     <div class="hhmgt-filters" style="margin: 20px 0;">
@@ -202,24 +210,14 @@ if (!defined('ABSPATH')) {
 </div>
 
 <style>
-.hhmgt-location-selector {
-    margin: 20px 0;
-    padding: 15px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-}
-
-.hhmgt-location-selector label {
-    font-weight: 600;
-    margin-right: 10px;
-}
-
-.hhmgt-location-selector select {
-    min-width: 200px;
+.hhmgt-location-tabs {
+    margin-bottom: 0;
 }
 
 .hhmgt-filters {
+    border-top: 1px solid #c3c4c7;
+    padding-top: 0;
+    margin-top: 0 !important;
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
