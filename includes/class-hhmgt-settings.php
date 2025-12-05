@@ -188,16 +188,12 @@ class HHMGT_Settings {
         $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
         $tab = isset($_POST['tab']) ? sanitize_text_field($_POST['tab']) : 'general';
 
-        error_log("HHMGT Debug: Saving settings for location ID {$location_id}, tab: {$tab}");
-
         if (!$location_id) {
             wp_die(__('Invalid location', 'hhmgt'));
         }
 
         // Get all settings
         $all_settings = get_option(self::OPTION_NAME, array());
-
-        error_log("HHMGT Debug: Current settings in options: " . print_r($all_settings, true));
 
         // Get current location settings or defaults
         $location_settings = isset($all_settings[$location_id]) ? $all_settings[$location_id] : self::get_default_settings();
@@ -232,15 +228,10 @@ class HHMGT_Settings {
 
         // Save updated settings
         $all_settings[$location_id] = $location_settings;
-        $update_result = update_option(self::OPTION_NAME, $all_settings);
-
-        error_log("HHMGT Debug: Settings update result: " . ($update_result ? 'success' : 'failed or no change'));
-        error_log("HHMGT Debug: Updated settings for location {$location_id}: " . print_r($location_settings, true));
+        update_option(self::OPTION_NAME, $all_settings);
 
         // Sync to database tables (for efficient querying)
         $this->sync_to_database($location_id, $location_settings, $tab);
-
-        error_log("HHMGT Debug: Completed sync to database for tab: {$tab}");
 
         // Redirect back
         wp_redirect(add_query_arg(
@@ -287,16 +278,12 @@ class HHMGT_Settings {
         global $wpdb;
         $table = $wpdb->prefix . 'hhmgt_departments';
 
-        error_log("HHMGT Debug: sync_departments called for location {$location_id} with " . count($departments) . " departments");
-
         // Delete existing departments for this location
-        $deleted = $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
-        error_log("HHMGT Debug: Deleted {$deleted} existing departments");
+        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
 
         // Insert new departments
-        $inserted = 0;
         foreach ($departments as $dept) {
-            $result = $wpdb->insert(
+            $wpdb->insert(
                 $table,
                 array(
                     'location_id' => $location_id,
@@ -311,13 +298,7 @@ class HHMGT_Settings {
                 ),
                 array('%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s')
             );
-            if ($result) {
-                $inserted++;
-            } else {
-                error_log("HHMGT Debug: Failed to insert department: " . $wpdb->last_error);
-            }
         }
-        error_log("HHMGT Debug: Inserted {$inserted} departments");
     }
 
     /**
@@ -327,16 +308,12 @@ class HHMGT_Settings {
         global $wpdb;
         $table = $wpdb->prefix . 'hhmgt_recurring_patterns';
 
-        error_log("HHMGT Debug: sync_patterns called for location {$location_id} with " . count($patterns) . " patterns");
-
         // Delete existing patterns for this location
-        $deleted = $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
-        error_log("HHMGT Debug: Deleted {$deleted} existing patterns");
+        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
 
         // Insert new patterns
-        $inserted = 0;
         foreach ($patterns as $pattern) {
-            $result = $wpdb->insert(
+            $wpdb->insert(
                 $table,
                 array(
                     'location_id' => $location_id,
@@ -349,13 +326,7 @@ class HHMGT_Settings {
                 ),
                 array('%d', '%s', '%s', '%d', '%d', '%d', '%s')
             );
-            if ($result) {
-                $inserted++;
-            } else {
-                error_log("HHMGT Debug: Failed to insert pattern: " . $wpdb->last_error);
-            }
         }
-        error_log("HHMGT Debug: Inserted {$inserted} patterns");
     }
 
     /**

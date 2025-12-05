@@ -113,17 +113,6 @@ class HHMGT_Tasks_Admin {
         // Get location hierarchy
         $location_hierarchy = self::get_location_hierarchy($current_location_id);
 
-        // Debug: Log empty data for troubleshooting
-        if (empty($departments)) {
-            error_log("HHMGT Debug: No departments found for location ID {$current_location_id}");
-        }
-        if (empty($patterns)) {
-            error_log("HHMGT Debug: No patterns found for location ID {$current_location_id}");
-        }
-        if (empty($location_hierarchy)) {
-            error_log("HHMGT Debug: No location hierarchy found for location ID {$current_location_id}");
-        }
-
         // Get checklist templates
         $templates = self::get_checklist_templates($current_location_id);
 
@@ -503,14 +492,10 @@ class HHMGT_Tasks_Admin {
         $location_settings = $settings[$location_id] ?? array();
 
         if (empty($location_settings)) {
-            error_log("HHMGT Debug: No settings found in options for location ID {$location_id}");
             return;
         }
 
-        error_log("HHMGT Debug: Found settings in options for location ID {$location_id}");
-
         $settings_instance = HHMGT_Settings::instance();
-
         global $wpdb;
 
         try {
@@ -522,13 +507,11 @@ class HHMGT_Tasks_Admin {
                     "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_departments WHERE location_id = %d",
                     $location_id
                 ));
-                error_log("HHMGT Debug: Departments in database: {$dept_count}, in options: " . count($location_settings['departments']));
 
                 if ($dept_count == 0) {
                     $method = $reflection->getMethod('sync_departments');
                     $method->setAccessible(true);
                     $method->invoke($settings_instance, $location_id, $location_settings['departments']);
-                    error_log("HHMGT Debug: Synced departments to database");
                 }
             }
 
@@ -538,13 +521,11 @@ class HHMGT_Tasks_Admin {
                     "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_recurring_patterns WHERE location_id = %d",
                     $location_id
                 ));
-                error_log("HHMGT Debug: Patterns in database: {$pattern_count}, in options: " . count($location_settings['recurring_patterns']));
 
                 if ($pattern_count == 0) {
                     $method = $reflection->getMethod('sync_patterns');
                     $method->setAccessible(true);
                     $method->invoke($settings_instance, $location_id, $location_settings['recurring_patterns']);
-                    error_log("HHMGT Debug: Synced patterns to database");
                 }
             }
 
@@ -554,17 +535,15 @@ class HHMGT_Tasks_Admin {
                     "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_task_states WHERE location_id = %d",
                     $location_id
                 ));
-                error_log("HHMGT Debug: States in database: {$state_count}, in options: " . count($location_settings['task_states']));
 
                 if ($state_count == 0) {
                     $method = $reflection->getMethod('sync_states');
                     $method->setAccessible(true);
                     $method->invoke($settings_instance, $location_id, $location_settings['task_states']);
-                    error_log("HHMGT Debug: Synced states to database");
                 }
             }
         } catch (Exception $e) {
-            error_log("HHMGT Error in auto-sync: " . $e->getMessage());
+            // Silently fail - sync will happen on next settings save
         }
     }
 }

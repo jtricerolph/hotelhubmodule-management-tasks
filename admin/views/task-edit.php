@@ -199,7 +199,7 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
                                 <select id="load-template" style="width: auto; margin-right: 10px;">
                                     <option value=""><?php _e('-- Select Template --', 'hhmgt'); ?></option>
                                     <?php foreach ($templates as $template): ?>
-                                        <option value="<?php echo esc_attr($template->id); ?>" data-items="<?php echo esc_attr($template->checklist_items); ?>">
+                                        <option value="<?php echo esc_attr($template->id); ?>" data-items='<?php echo htmlspecialchars($template->checklist_items, ENT_QUOTES, 'UTF-8'); ?>'>
                                             <?php echo esc_html($template->template_name); ?>
                                         </option>
                                     <?php endforeach; ?>
