@@ -188,15 +188,13 @@ class HHMGT_Core {
      * Enqueue frontend assets
      */
     public function enqueue_assets() {
-        // Only on Hotel Hub pages
-        if (!is_page() && !is_singular()) {
-            return;
-        }
-
         // Check user permissions
         if (!$this->user_can_access()) {
             return;
         }
+
+        // Note: Assets enqueued globally for PWA compatibility
+        // Hotel Hub App loads modules via AJAX, so is_page() checks don't work
 
         // Material Symbols font (standard across modules)
         wp_enqueue_style(
