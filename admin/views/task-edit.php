@@ -156,9 +156,20 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
                                     );
                                     ?>
                                 </p>
-                                <button type="button" class="button" id="manage-future-tasks-btn">
-                                    <?php _e('Manage Future Instances', 'hhmgt'); ?>
+                                <?php if ($future_count == 0): ?>
+                                    <p class="description" style="margin-bottom: 10px;">
+                                        <?php _e('No instances scheduled yet. The scheduler runs hourly, or you can schedule manually:', 'hhmgt'); ?>
+                                    </p>
+                                <?php endif; ?>
+                                <button type="button" class="button" id="schedule-now-btn">
+                                    <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">play_arrow</span>
+                                    <?php _e('Schedule Now', 'hhmgt'); ?>
                                 </button>
+                                <?php if ($future_count > 0): ?>
+                                    <button type="button" class="button" id="manage-future-tasks-btn">
+                                        <?php _e('Manage Future Instances', 'hhmgt'); ?>
+                                    </button>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -227,7 +238,12 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
                                 <select id="load-template" style="width: auto; margin-right: 10px;">
                                     <option value=""><?php _e('-- Select Template --', 'hhmgt'); ?></option>
                                     <?php foreach ($templates as $template): ?>
-                                        <option value="<?php echo esc_attr($template->id); ?>" data-items='<?php echo htmlspecialchars($template->checklist_items, ENT_QUOTES, 'UTF-8'); ?>'>
+                                        <?php
+                                        // Decode JSON from database and re-encode for JavaScript
+                                        $items = json_decode($template->checklist_items, true);
+                                        $items_json = !empty($items) ? json_encode($items) : '[]';
+                                        ?>
+                                        <option value="<?php echo esc_attr($template->id); ?>" data-items='<?php echo esc_attr($items_json); ?>'>
                                             <?php echo esc_html($template->template_name); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -602,26 +618,37 @@ jQuery(document).ready(function($) {
             return;
         }
 
-        // Clear existing items
-        $('#checklist-items').empty();
+        try {
+            // Clear existing items
+            $('#checklist-items').empty();
 
-        // Parse and add template items
-        const items = JSON.parse(itemsJson);
-        items.forEach(function(item) {
-            const $item = $(`
-                <div class="hhmgt-checklist-item">
-                    <span class="material-symbols-outlined hhmgt-drag-handle">drag_indicator</span>
-                    <input type="text" name="checklist_items[]" value="${item}" placeholder="<?php esc_attr_e('Checklist item...', 'hhmgt'); ?>">
-                    <button type="button" class="button hhmgt-remove-item">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-            `);
-            $('#checklist-items').append($item);
-        });
+            // Parse and add template items
+            const items = JSON.parse(itemsJson);
 
-        // Reset template selector
-        $('#load-template').val('');
+            if (!Array.isArray(items) || items.length === 0) {
+                alert('<?php esc_attr_e('Template has no items.', 'hhmgt'); ?>');
+                return;
+            }
+
+            items.forEach(function(item) {
+                const $item = $(`
+                    <div class="hhmgt-checklist-item">
+                        <span class="material-symbols-outlined hhmgt-drag-handle">drag_indicator</span>
+                        <input type="text" name="checklist_items[]" value="${item}" placeholder="<?php esc_attr_e('Checklist item...', 'hhmgt'); ?>">
+                        <button type="button" class="button hhmgt-remove-item">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                `);
+                $('#checklist-items').append($item);
+            });
+
+            // Reset template selector
+            $('#load-template').val('');
+        } catch (e) {
+            console.error('Error loading template:', e);
+            alert('<?php esc_attr_e('Error loading template. Please try again.', 'hhmgt'); ?>');
+        }
     });
 
     // Select/deselect all locations
@@ -631,6 +658,41 @@ jQuery(document).ready(function($) {
 
     $('#deselect-all-locations').on('click', function() {
         $('input[name="location_hierarchy_ids[]"]').prop('checked', false);
+    });
+
+    // Schedule Now button
+    $('#schedule-now-btn').on('click', function() {
+        const $btn = $(this);
+        const originalText = $btn.html();
+
+        if (!confirm('<?php esc_attr_e('This will generate future task instances based on the recurring pattern. Continue?', 'hhmgt'); ?>')) {
+            return;
+        }
+
+        $btn.prop('disabled', true).html('<span class="spinner is-active" style="float: none; margin: 0;"></span> <?php esc_attr_e('Scheduling...', 'hhmgt'); ?>');
+
+        $.ajax({
+            url: hhmgtAdmin.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'hhmgt_schedule_task_now',
+                nonce: hhmgtAdmin.nonce,
+                task_id: <?php echo intval($task->id ?? 0); ?>
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data.message || '<?php esc_attr_e('Task scheduled successfully!', 'hhmgt'); ?>');
+                    location.reload();
+                } else {
+                    alert(response.data.message || '<?php esc_attr_e('Error scheduling task.', 'hhmgt'); ?>');
+                    $btn.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function() {
+                alert('<?php esc_attr_e('Error scheduling task. Please try again.', 'hhmgt'); ?>');
+                $btn.prop('disabled', false).html(originalText);
+            }
+        });
     });
 
     // Manage future tasks modal

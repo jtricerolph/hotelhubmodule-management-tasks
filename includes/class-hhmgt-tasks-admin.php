@@ -33,6 +33,7 @@ class HHMGT_Tasks_Admin {
         add_action('admin_post_hhmgt_delete_task', array($this, 'delete_task'));
         add_action('admin_post_hhmgt_update_future_tasks', array($this, 'update_future_tasks'));
         add_action('wp_ajax_hhmgt_get_task', array($this, 'ajax_get_task'));
+        add_action('wp_ajax_hhmgt_schedule_task_now', array($this, 'ajax_schedule_task_now'));
     }
 
     /**
@@ -544,6 +545,47 @@ class HHMGT_Tasks_Admin {
             }
         } catch (Exception $e) {
             // Silently fail - sync will happen on next settings save
+        }
+    }
+
+    /**
+     * AJAX: Schedule task instances now
+     */
+    public function ajax_schedule_task_now() {
+        check_ajax_referer('hhmgt_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'hhmgt')));
+        }
+
+        $task_id = isset($_POST['task_id']) ? intval($_POST['task_id']) : 0;
+
+        if (!$task_id) {
+            wp_send_json_error(array('message' => __('Invalid task ID', 'hhmgt')));
+        }
+
+        // Get the task
+        $task = self::get_task($task_id);
+
+        if (!$task || $task->recurrence_type === 'none') {
+            wp_send_json_error(array('message' => __('Task is not a recurring task', 'hhmgt')));
+        }
+
+        // Call the scheduler to process this specific task
+        $scheduler = HHMGT_Scheduler::instance();
+        $count = $scheduler->schedule_task_instances($task_id);
+
+        if ($count > 0) {
+            wp_send_json_success(array(
+                'message' => sprintf(
+                    _n('Created %d task instance.', 'Created %d task instances.', $count, 'hhmgt'),
+                    $count
+                )
+            ));
+        } else {
+            wp_send_json_success(array(
+                'message' => __('No new instances created. Instances may already exist or task settings need review.', 'hhmgt')
+            ));
         }
     }
 }

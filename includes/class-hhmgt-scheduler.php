@@ -285,6 +285,88 @@ class HHMGT_Scheduler {
     }
 
     /**
+     * Schedule instances for a specific task
+     *
+     * Manually triggers instance generation for a recurring task
+     *
+     * @param int $task_id Task ID
+     * @return int Number of instances created
+     */
+    public function schedule_task_instances($task_id) {
+        global $wpdb;
+
+        $table_tasks = $wpdb->prefix . 'hhmgt_tasks';
+        $table_patterns = $wpdb->prefix . 'hhmgt_recurring_patterns';
+        $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
+
+        // Get task with pattern
+        $task = $wpdb->get_row($wpdb->prepare(
+            "SELECT t.*, p.interval_days, p.lead_time_days, p.interval_type
+            FROM {$table_tasks} t
+            INNER JOIN {$table_patterns} p ON t.recurrence_pattern_id = p.id
+            WHERE t.id = %d
+            AND t.recurrence_type != 'none'
+            AND t.is_active = 1
+            AND p.is_enabled = 1",
+            $task_id
+        ));
+
+        if (!$task) {
+            return 0; // Not a recurring task or not active
+        }
+
+        $instances_created = 0;
+
+        if ($task->recurrence_type === 'dynamic') {
+            // For dynamic tasks, create first instance only
+            $next_date = date('Y-m-d');
+            $result = $this->create_task_instance($task, $next_date);
+
+            if (is_array($result)) {
+                $instances_created = count($result);
+            } elseif ($result) {
+                $instances_created = 1;
+            }
+        } else {
+            // For fixed recurring, create instances for next 30 days
+            $current_date = new DateTime();
+            $end_date = new DateTime('+30 days');
+
+            // Get last scheduled instance to determine next date
+            $last_instance = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table_instances}
+                WHERE task_id = %d
+                ORDER BY scheduled_date DESC
+                LIMIT 1",
+                $task->id
+            ));
+
+            if ($last_instance) {
+                $next_date = new DateTime($last_instance->scheduled_date);
+                $next_date->modify('+' . $task->interval_days . ' days');
+            } else {
+                // First instance - start today
+                $next_date = new DateTime();
+            }
+
+            // Generate instances up to 30 days out
+            while ($next_date <= $end_date) {
+                $result = $this->create_task_instance($task, $next_date->format('Y-m-d'));
+
+                if (is_array($result)) {
+                    $instances_created += count($result);
+                } elseif ($result) {
+                    $instances_created++;
+                }
+
+                $next_date->modify('+' . $task->interval_days . ' days');
+            }
+        }
+
+        return $instances_created;
+    }
+
+    /**
      * Copy notes with carry_forward flag to new instance
      *
      * @param int $old_instance_id Old task instance ID
