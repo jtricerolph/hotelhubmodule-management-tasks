@@ -26,15 +26,32 @@
         currentTask: null
     };
 
+    // localStorage persistence key
+    const STORAGE_KEY_PREFIX = 'hhmgt_filters_';
+    const DEBUG = true; // Enable console logging
+
+    /**
+     * Debug log helper
+     */
+    function debugLog(message, data) {
+        if (DEBUG) {
+            console.log('[HHMGT] ' + message, data || '');
+        }
+    }
+
     /**
      * Initialize module
      */
     function initModule() {
+        debugLog('Initializing module...');
+
         // Get location from container
         const $container = $('.hhmgt-container');
         if ($container.length) {
             currentState.location_id = $container.data('location');
         }
+
+        debugLog('Location ID:', currentState.location_id);
 
         if (!currentState.location_id) {
             showError('No location selected');
@@ -43,6 +60,7 @@
 
         // Initialize components
         initFilters();
+        loadSavedFilters(); // Load from localStorage
         initEventHandlers();
         initHeartbeat();
 
@@ -61,6 +79,78 @@
 
         currentState.filters.date_from = dateFrom;
         currentState.filters.date_to = dateTo;
+    }
+
+    /**
+     * Load saved filters from localStorage
+     */
+    function loadSavedFilters() {
+        const storageKey = STORAGE_KEY_PREFIX + currentState.location_id;
+        const saved = localStorage.getItem(storageKey);
+
+        debugLog('Loading saved filters from localStorage...', storageKey);
+
+        if (saved) {
+            try {
+                const filters = JSON.parse(saved);
+                debugLog('Saved filters found:', filters);
+
+                // Only restore specific filters (not dates)
+                if (filters.department) {
+                    currentState.filters.department = filters.department;
+                    $('#filter-department').val(filters.department);
+                }
+
+                if (filters.location_type) {
+                    currentState.filters.location_type = filters.location_type;
+                    $('#filter-location-type').val(filters.location_type);
+                }
+
+                if (filters.location) {
+                    currentState.filters.location = filters.location;
+                    // Location will be loaded after types are populated
+                }
+
+                if (filters.group_by) {
+                    currentState.filters.group_by = filters.group_by;
+                    $('#filter-group-by').val(filters.group_by);
+                }
+
+                if (filters.show_completed !== undefined) {
+                    currentState.filters.show_completed = filters.show_completed;
+                    $('#filter-show-completed').prop('checked', filters.show_completed);
+                }
+
+                debugLog('Filters restored from localStorage');
+            } catch (e) {
+                console.error('[HHMGT] Failed to load saved filters:', e);
+            }
+        } else {
+            debugLog('No saved filters found');
+        }
+    }
+
+    /**
+     * Save filters to localStorage
+     */
+    function saveFilters() {
+        const storageKey = STORAGE_KEY_PREFIX + currentState.location_id;
+
+        // Only save specific filters
+        const filtersToSave = {
+            department: currentState.filters.department,
+            location_type: currentState.filters.location_type,
+            location: currentState.filters.location,
+            group_by: currentState.filters.group_by,
+            show_completed: currentState.filters.show_completed
+        };
+
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(filtersToSave));
+            debugLog('Filters saved to localStorage:', filtersToSave);
+        } catch (e) {
+            console.error('[HHMGT] Failed to save filters:', e);
+        }
     }
 
     /**
@@ -144,6 +234,11 @@
             group_by: $('#filter-group-by').val()
         };
 
+        debugLog('Applying filters:', currentState.filters);
+
+        // Save to localStorage
+        saveFilters();
+
         loadTasks();
     }
 
@@ -151,6 +246,8 @@
      * Load location types
      */
     function loadLocationTypes() {
+        debugLog('Loading location types...');
+
         $.ajax({
             url: hhmgtData.ajax_url,
             type: 'POST',
@@ -160,12 +257,34 @@
                 location_id: currentState.location_id
             },
             success: function(response) {
+                debugLog('Location types response:', response);
+
                 if (response.success && response.data.types) {
                     const $select = $('#filter-location-type');
-                    response.data.types.forEach(function(type) {
-                        $select.append(`<option value="${type}">${type}</option>`);
-                    });
+
+                    if (response.data.types.length === 0) {
+                        debugLog('Warning: No location types found');
+                        // Show helpful message
+                        $select.after('<small style="color: #dc2626; display: block; margin-top: 4px;">No location types configured. Please add locations in admin settings.</small>');
+                    } else {
+                        response.data.types.forEach(function(type) {
+                            $select.append(`<option value="${type}">${type}</option>`);
+                        });
+                        debugLog('Location types loaded:', response.data.types.length);
+
+                        // Restore saved location type after options are added
+                        if (currentState.filters.location_type) {
+                            $select.val(currentState.filters.location_type);
+                            loadLocations(currentState.filters.location_type);
+                        }
+                    }
+                } else {
+                    console.error('[HHMGT] Failed to load location types:', response);
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('[HHMGT] Location types AJAX error:', {xhr, status, error});
+                showError('Failed to load location types');
             }
         });
     }
@@ -178,8 +297,11 @@
         $select.find('option:not(:first)').remove();
 
         if (!locationType) {
+            debugLog('No location type selected, skipping location load');
             return;
         }
+
+        debugLog('Loading locations for type:', locationType);
 
         $.ajax({
             url: hhmgtData.ajax_url,
@@ -191,11 +313,30 @@
                 location_type: locationType
             },
             success: function(response) {
+                debugLog('Locations response:', response);
+
                 if (response.success && response.data.locations) {
-                    response.data.locations.forEach(function(loc) {
-                        $select.append(`<option value="${loc.id}">${loc.full_path || loc.location_name}</option>`);
-                    });
+                    if (response.data.locations.length === 0) {
+                        debugLog('Warning: No locations found for type:', locationType);
+                        $select.after('<small style="color: #dc2626; display: block; margin-top: 4px;">No locations found for this type.</small>');
+                    } else {
+                        response.data.locations.forEach(function(loc) {
+                            $select.append(`<option value="${loc.id}">${loc.full_path || loc.location_name}</option>`);
+                        });
+                        debugLog('Locations loaded:', response.data.locations.length);
+
+                        // Restore saved location after options are added
+                        if (currentState.filters.location) {
+                            $select.val(currentState.filters.location);
+                        }
+                    }
+                } else {
+                    console.error('[HHMGT] Failed to load locations:', response);
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('[HHMGT] Locations AJAX error:', {xhr, status, error});
+                showError('Failed to load locations');
             }
         });
     }
@@ -207,6 +348,20 @@
         const $list = $('#tasks-list');
         $list.html('<div class="hhmgt-loading"><span class="material-symbols-outlined hhmgt-loading-icon">sync</span><p>' + hhmgtData.strings.loading + '</p></div>');
 
+        debugLog('Loading tasks with filters:', currentState.filters);
+
+        // Set timeout for loading
+        const loadTimeout = setTimeout(function() {
+            console.error('[HHMGT] Task loading timeout - no response after 10 seconds');
+            $list.html(`
+                <div class="hhmgt-empty">
+                    <span class="material-symbols-outlined hhmgt-empty-icon" style="color: #dc2626;">error</span>
+                    <p class="hhmgt-empty-text">Loading timeout. Please check your connection and try again.</p>
+                    <button type="button" class="hhmgt-btn hhmgt-btn-primary" onclick="location.reload()">Reload Page</button>
+                </div>
+            `);
+        }, 10000); // 10 second timeout
+
         $.ajax({
             url: hhmgtData.ajax_url,
             type: 'POST',
@@ -217,15 +372,36 @@
                 ...currentState.filters
             },
             success: function(response) {
+                clearTimeout(loadTimeout);
+                debugLog('Tasks response:', response);
+
                 if (response.success) {
                     currentState.tasks = response.data.tasks;
                     renderTasks(response.data);
+                    debugLog('Tasks rendered successfully');
                 } else {
-                    showError(response.data);
+                    console.error('[HHMGT] Task load failed:', response);
+                    $list.html(`
+                        <div class="hhmgt-empty">
+                            <span class="material-symbols-outlined hhmgt-empty-icon" style="color: #dc2626;">error</span>
+                            <p class="hhmgt-empty-text">${response.data || 'Failed to load tasks'}</p>
+                        </div>
+                    `);
+                    showError(response.data || 'Failed to load tasks');
                 }
             },
-            error: function() {
-                showError(hhmgtData.strings.error);
+            error: function(xhr, status, error) {
+                clearTimeout(loadTimeout);
+                console.error('[HHMGT] Tasks AJAX error:', {xhr, status, error});
+
+                $list.html(`
+                    <div class="hhmgt-empty">
+                        <span class="material-symbols-outlined hhmgt-empty-icon" style="color: #dc2626;">error</span>
+                        <p class="hhmgt-empty-text">Error loading tasks. Please try again.</p>
+                        <button type="button" class="hhmgt-btn hhmgt-btn-primary" onclick="location.reload()">Reload Page</button>
+                    </div>
+                `);
+                showError(hhmgtData.strings.error || 'Error loading tasks');
             }
         });
     }

@@ -460,13 +460,33 @@ class HHMGT_Ajax {
 
         $table_locations = $wpdb->prefix . 'hhmgt_location_hierarchy';
 
+        // Get location types that are not empty
         $types = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT location_type
             FROM {$table_locations}
-            WHERE location_id = %d AND location_type IS NOT NULL AND is_enabled = 1
+            WHERE location_id = %d
+            AND location_type IS NOT NULL
+            AND location_type != ''
+            AND is_enabled = 1
             ORDER BY location_type ASC",
             $location_id
         ));
+
+        // If no types found, check if there are ANY locations in hierarchy
+        if (empty($types)) {
+            $total_locations = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table_locations} WHERE location_id = %d AND is_enabled = 1",
+                $location_id
+            ));
+
+            // Log for debugging
+            error_log("[HHMGT] No location types found for location $location_id. Total locations: $total_locations");
+
+            // If locations exist but have no type, return a generic type
+            if ($total_locations > 0) {
+                $types = array('General');
+            }
+        }
 
         wp_send_json_success(array('types' => $types));
     }
@@ -491,7 +511,8 @@ class HHMGT_Ajax {
         $where_clauses = array("location_id = %d", "is_enabled = 1");
         $where_values = array($location_id);
 
-        if ($location_type) {
+        // If type is "General" (our fallback), get all locations
+        if ($location_type && $location_type !== 'General') {
             $where_clauses[] = "location_type = %s";
             $where_values[] = $location_type;
         }
@@ -505,6 +526,8 @@ class HHMGT_Ajax {
             ORDER BY full_path ASC",
             $where_values
         ));
+
+        error_log("[HHMGT] Loaded " . count($locations) . " locations for location_id=$location_id, type=$location_type");
 
         wp_send_json_success(array('locations' => $locations));
     }
