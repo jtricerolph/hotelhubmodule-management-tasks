@@ -98,6 +98,19 @@ $states = isset($location_settings['task_states']) ? $location_settings['task_st
                                                <?php checked($state['is_enabled'] ?? true, true); ?>>
                                         <?php esc_html_e('Show in frontend', 'hhmgt'); ?>
                                     </label>
+                                    <br>
+                                    <label>
+                                        <input type="checkbox"
+                                               name="states[<?php echo esc_attr($index); ?>][checklist_started_state]"
+                                               value="1"
+                                               class="hhmgt-checklist-started-checkbox"
+                                               <?php checked($state['checklist_started_state'] ?? false, true); ?>
+                                               <?php disabled($state['is_complete_state'] ?? false, true); ?>>
+                                        <?php esc_html_e('Auto-update to this state when checklist started', 'hhmgt'); ?>
+                                        <span class="description" style="display: block; margin-top: 5px;">
+                                            <?php esc_html_e('Only one state can have this option enabled. Cannot be used with completed states.', 'hhmgt'); ?>
+                                        </span>
+                                    </label>
                                 </fieldset>
                             </td>
                         </tr>
@@ -171,6 +184,13 @@ $states = isset($location_settings['task_states']) ? $location_settings['task_st
                             <label>
                                 <input type="checkbox" name="states[{{index}}][is_enabled]" value="1" checked>
                                 <?php esc_html_e('Show in frontend', 'hhmgt'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="states[{{index}}][checklist_started_state]" value="1" class="hhmgt-checklist-started-checkbox">
+                                <?php esc_html_e('Auto-update to this state when checklist started', 'hhmgt'); ?>
+                                <span class="description" style="display: block; margin-top: 5px;">
+                                    <?php esc_html_e('Only one state can have this option enabled. Cannot be used with completed states.', 'hhmgt'); ?>
+                                </span>
                             </label>
                         </fieldset>
                     </td>

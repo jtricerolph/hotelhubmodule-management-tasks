@@ -20,6 +20,7 @@
         initAddButtons();
         initRemoveButtons();
         initSortable();
+        initChecklistStartedValidation();
     }
 
     /**
@@ -191,6 +192,34 @@
     function initFormHandling() {
         $('.hhmgt-settings-form').on('submit', function() {
             showLoading();
+        });
+    }
+
+    /**
+     * Initialize checklist started checkbox validation
+     * Only allow one state to have this option enabled
+     */
+    function initChecklistStartedValidation() {
+        $(document).on('change', '.hhmgt-checklist-started-checkbox', function() {
+            const $checkbox = $(this);
+
+            if ($checkbox.is(':checked')) {
+                // Uncheck all other checklist started checkboxes
+                $('.hhmgt-checklist-started-checkbox').not($checkbox).prop('checked', false);
+            }
+        });
+
+        // Also disable the checkbox if "Marks task as completed" is checked
+        $(document).on('change', 'input[name*="[is_complete_state]"]', function() {
+            const $completeCheckbox = $(this);
+            const $container = $completeCheckbox.closest('.hhmgt-repeater-item');
+            const $checklistStartedCheckbox = $container.find('.hhmgt-checklist-started-checkbox');
+
+            if ($completeCheckbox.is(':checked')) {
+                $checklistStartedCheckbox.prop('checked', false).prop('disabled', true);
+            } else {
+                $checklistStartedCheckbox.prop('disabled', false);
+            }
         });
     }
 

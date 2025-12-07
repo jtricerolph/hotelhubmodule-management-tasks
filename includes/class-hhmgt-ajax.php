@@ -35,6 +35,7 @@ class HHMGT_Ajax {
         add_action('wp_ajax_hhmgt_update_task_status', array($this, 'update_task_status'));
         add_action('wp_ajax_hhmgt_update_checklist', array($this, 'update_checklist'));
         add_action('wp_ajax_hhmgt_add_note', array($this, 'add_note'));
+        add_action('wp_ajax_hhmgt_update_note_carry_forward', array($this, 'update_note_carry_forward'));
         add_action('wp_ajax_hhmgt_complete_task', array($this, 'complete_task'));
         add_action('wp_ajax_hhmgt_get_location_types', array($this, 'get_location_types'));
         add_action('wp_ajax_hhmgt_get_locations', array($this, 'get_locations'));
@@ -381,9 +382,68 @@ class HHMGT_Ajax {
         // Debug logging
         error_log("[HHMGT] Updating checklist for instance $instance_id: " . json_encode($normalized_state));
 
-        // Update checklist state
+        // Get current instance to check if checklist was started
         $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
+        $instance = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_instances} WHERE id = %d",
+            $instance_id
+        ));
 
+        if (!$instance) {
+            wp_send_json_error(array('message' => __('Task instance not found', 'hhmgt')));
+        }
+
+        // Check if checklist is being started (was all false, now has true)
+        $old_state = $instance->checklist_state ? json_decode($instance->checklist_state, true) : array();
+        $was_all_false = empty($old_state) || !in_array(true, $old_state, true);
+        $now_has_true = in_array(true, $normalized_state, true);
+        $checklist_just_started = $was_all_false && $now_has_true;
+
+        $status_updated = false;
+        $new_status_name = null;
+
+        // If checklist just started, auto-update status if configured
+        if ($checklist_just_started) {
+            // Get location settings to find checklist_started_state
+            $location_settings = HHMGT_Settings::get_location_settings($instance->location_id);
+            $checklist_started_state = null;
+
+            if (!empty($location_settings['task_states'])) {
+                foreach ($location_settings['task_states'] as $state) {
+                    if (!empty($state['checklist_started_state'])) {
+                        $checklist_started_state = $state;
+                        break;
+                    }
+                }
+            }
+
+            // Update status if found
+            if ($checklist_started_state) {
+                // Get state ID from database
+                $table_states = $wpdb->prefix . 'hhmgt_task_states';
+                $state_record = $wpdb->get_row($wpdb->prepare(
+                    "SELECT id, state_name FROM {$table_states}
+                    WHERE location_id = %d AND state_slug = %s AND is_enabled = 1
+                    LIMIT 1",
+                    $instance->location_id,
+                    $checklist_started_state['state_slug']
+                ));
+
+                if ($state_record) {
+                    $wpdb->update(
+                        $table_instances,
+                        array('status_id' => $state_record->id),
+                        array('id' => $instance_id),
+                        array('%d'),
+                        array('%d')
+                    );
+                    $status_updated = true;
+                    $new_status_name = $state_record->state_name;
+                }
+            }
+        }
+
+        // Update checklist state
         $updated = $wpdb->update(
             $table_instances,
             array('checklist_state' => json_encode($normalized_state)),
@@ -398,7 +458,9 @@ class HHMGT_Ajax {
 
         wp_send_json_success(array(
             'message' => __('Checklist updated', 'hhmgt'),
-            'checklist_state' => $normalized_state
+            'checklist_state' => $normalized_state,
+            'status_updated' => $status_updated,
+            'new_status_name' => $new_status_name
         ));
     }
 
@@ -446,6 +508,45 @@ class HHMGT_Ajax {
         wp_send_json_success(array(
             'message' => __('Note added successfully', 'hhmgt'),
             'note_id' => $wpdb->insert_id
+        ));
+    }
+
+    /**
+     * Update note carry-forward status (AJAX handler)
+     */
+    public function update_note_carry_forward() {
+        global $wpdb;
+
+        check_ajax_referer('hhmgt_ajax_nonce', 'nonce');
+
+        if (!$this->user_can_access()) {
+            wp_send_json_error(array('message' => __('Permission denied', 'hhmgt')));
+        }
+
+        $note_id = isset($_POST['note_id']) ? intval($_POST['note_id']) : 0;
+        $carry_forward = isset($_POST['carry_forward']) ? filter_var($_POST['carry_forward'], FILTER_VALIDATE_BOOLEAN) : false;
+
+        if (!$note_id) {
+            wp_send_json_error(array('message' => __('Invalid note ID', 'hhmgt')));
+        }
+
+        $table_notes = $wpdb->prefix . 'hhmgt_task_notes';
+
+        // Update carry_forward status
+        $updated = $wpdb->update(
+            $table_notes,
+            array('carry_forward' => $carry_forward ? 1 : 0),
+            array('id' => $note_id),
+            array('%d'),
+            array('%d')
+        );
+
+        if ($updated === false) {
+            wp_send_json_error(array('message' => __('Failed to update note', 'hhmgt')));
+        }
+
+        wp_send_json_success(array(
+            'message' => __('Note updated successfully', 'hhmgt')
         ));
     }
 

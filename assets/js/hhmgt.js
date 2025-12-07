@@ -340,16 +340,20 @@
             }
         });
 
-        // Status button click
-        $(document).on('click', '.hhmgt-status-btn', function() {
-            const statusId = $(this).data('status-id');
-            const isComplete = $(this).data('is-complete');
+        // Update status button click
+        $(document).on('click', '#update-status-btn', function() {
+            openStatusSelectionModal();
+        });
 
-            if (isComplete) {
-                openCompletionModal();
-            } else {
-                updateTaskStatus(statusId);
-            }
+        // Complete task button click
+        $(document).on('click', '#complete-task-btn', function() {
+            openCompletionModal();
+        });
+
+        // Status option selection
+        $(document).on('click', '.hhmgt-status-option', function() {
+            const statusId = $(this).data('status-id');
+            updateTaskStatus(statusId);
         });
 
         // Checklist change
@@ -360,6 +364,13 @@
         // Add note
         $(document).on('click', '#add-note-btn', function() {
             addNote();
+        });
+
+        // Toggle note carry-forward
+        $(document).on('change', '.hhmgt-note-carry-forward-checkbox', function() {
+            const noteId = $(this).data('note-id');
+            const carryForward = $(this).is(':checked');
+            updateNoteCarryForward(noteId, carryForward);
         });
 
         // Complete task
@@ -701,30 +712,28 @@
         const notes = data.notes || [];
         const states = data.states || [];
 
+        // Store states in currentState for action buttons
+        if (currentState.currentTask) {
+            currentState.currentTask.states = states;
+        }
+
         const $modal = $('#task-modal .hhmgt-modal-content');
 
-        // Build status buttons HTML
+        // Build compact status badge HTML
         let statusHTML = '';
         if (states.length > 0) {
-            statusHTML = '<div class="hhmgt-modal-section"><h4 class="hhmgt-modal-section-title">Status</h4><div class="hhmgt-status-buttons">';
-
-            states.forEach(function(state) {
-                const isActive = state.id == instance.status_id;
-                const activeClass = isActive ? ' active' : '';
-                const isComplete = state.is_complete_state == 1 || state.is_complete_state === true;
-
-                statusHTML += `
-                    <button type="button"
-                            class="hhmgt-status-btn${activeClass}"
-                            data-status-id="${state.id}"
-                            data-is-complete="${isComplete ? '1' : '0'}"
-                            style="background-color: ${state.color_hex}; border-color: ${state.color_hex};">
-                        ${escapeHtml(state.state_name)}
-                    </button>
+            // Find current status
+            const currentStatus = states.find(state => state.id == instance.status_id);
+            if (currentStatus) {
+                statusHTML = `
+                    <div class="hhmgt-modal-section">
+                        <h4 class="hhmgt-modal-section-title">Current Status</h4>
+                        <div class="hhmgt-current-status-badge" style="background-color: ${currentStatus.color_hex};">
+                            ${escapeHtml(currentStatus.state_name)}
+                        </div>
+                    </div>
                 `;
-            });
-
-            statusHTML += '</div></div>';
+            }
         }
 
         // Build checklist HTML
@@ -763,21 +772,50 @@
             `;
         }
 
+        // Build action buttons HTML
+        let actionButtonsHTML = '';
+        if (states.length > 0) {
+            // Check if current status is a complete state
+            const currentStatus = states.find(state => state.id == instance.status_id);
+            const isCurrentlyComplete = currentStatus && (currentStatus.is_complete_state == 1 || currentStatus.is_complete_state === true);
+
+            actionButtonsHTML = `
+                <div class="hhmgt-modal-section">
+                    <div class="hhmgt-action-buttons">
+                        <button type="button" id="update-status-btn" class="hhmgt-btn hhmgt-btn-secondary" ${isCurrentlyComplete ? 'disabled' : ''}>
+                            <span class="material-symbols-outlined">edit</span>
+                            Update Status
+                        </button>
+                        <button type="button" id="complete-task-btn" class="hhmgt-btn hhmgt-btn-primary" ${isCurrentlyComplete ? 'disabled' : ''}>
+                            <span class="material-symbols-outlined">check_circle</span>
+                            Complete Task
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
         // Build notes HTML
         let notesHTML = '<div class="hhmgt-modal-section"><h4 class="hhmgt-modal-section-title">Notes</h4><div class="hhmgt-notes-list">';
 
         if (notes.length > 0) {
             notes.forEach(function(note) {
-                const carryForward = note.carry_forward ? '<div class="hhmgt-note-carry-forward"><span class="material-symbols-outlined">repeat</span>Carry forward</div>' : '';
+                const checked = note.carry_forward ? 'checked' : '';
 
                 notesHTML += `
-                    <div class="hhmgt-note-item">
+                    <div class="hhmgt-note-item" data-note-id="${note.id}">
                         <div class="hhmgt-note-header">
                             <span class="hhmgt-note-author">${escapeHtml(note.author_name || 'Unknown')}</span>
                             <span class="hhmgt-note-date">${formatDateTime(note.created_at)}</span>
                         </div>
                         <div class="hhmgt-note-text">${escapeHtml(note.note_text)}</div>
-                        ${carryForward}
+                        <div class="hhmgt-note-footer">
+                            <label class="hhmgt-note-carry-forward-toggle">
+                                <input type="checkbox" class="hhmgt-note-carry-forward-checkbox" data-note-id="${note.id}" ${checked}>
+                                <span class="material-symbols-outlined">repeat</span>
+                                <span>Carry forward to next task</span>
+                            </label>
+                        </div>
                     </div>
                 `;
             });
@@ -794,10 +832,6 @@
                 <div class="hhmgt-add-note-form">
                     <textarea id="note-text" class="hhmgt-note-textarea" placeholder="Enter note..."></textarea>
                     <div class="hhmgt-note-options">
-                        <label class="hhmgt-carry-forward-label">
-                            <input type="checkbox" id="note-carry-forward" class="hhmgt-carry-forward-checkbox" checked>
-                            Carry forward to next task
-                        </label>
                         <button type="button" id="add-note-btn" class="hhmgt-btn hhmgt-btn-primary">
                             <span class="material-symbols-outlined">add</span>
                             Add Note
@@ -824,6 +858,7 @@
                 ${statusHTML}
                 ${checklistHTML}
                 ${reminderHTML}
+                ${actionButtonsHTML}
                 ${notesHTML}
                 ${addNoteHTML}
             </div>
@@ -838,20 +873,29 @@
     function updateTaskStatus(statusId) {
         if (!currentState.currentTask) return;
 
+        const instanceId = currentState.currentTask.instance.id;
+
         $.ajax({
             url: hhmgtData.ajax_url,
             type: 'POST',
             data: {
                 action: 'hhmgt_update_task_status',
                 nonce: hhmgtData.nonce,
-                instance_id: currentState.currentTask.instance.id,
+                instance_id: instanceId,
                 status_id: statusId
             },
             success: function(response) {
                 if (response.success) {
                     showToast(response.data.message, 'success');
-                    closeModals();
-                    loadTasks(); // Reload list
+
+                    // Close status selection modal
+                    $('#status-selection-modal').fadeOut(200);
+
+                    // Reload task detail to reflect new status
+                    openTaskModal(instanceId);
+
+                    // Reload tasks list in background
+                    loadTasks();
                 } else {
                     showError(response.data);
                 }
@@ -888,6 +932,15 @@
             success: function(response) {
                 if (response.success) {
                     debugLog('Checklist updated successfully:', response.data.checklist_state);
+
+                    // If status was auto-updated, reload the task modal
+                    if (response.data.status_updated) {
+                        showToast('Status updated to: ' + response.data.new_status_name, 'success');
+                        // Reload task modal to reflect new status
+                        openTaskModal(currentState.currentTask.instance.id);
+                        // Reload tasks list in background
+                        loadTasks();
+                    }
                 } else {
                     console.error('[HHMGT] Checklist update failed:', response);
                     showError(response.data);
@@ -911,7 +964,8 @@
             return;
         }
 
-        const carryForward = $('#note-carry-forward').is(':checked');
+        // Default carry forward to true (user can toggle it after adding)
+        const carryForward = true;
 
         $.ajax({
             url: hhmgtData.ajax_url,
@@ -938,6 +992,89 @@
                 showError(hhmgtData.strings.error);
             }
         });
+    }
+
+    /**
+     * Update note carry-forward status
+     */
+    function updateNoteCarryForward(noteId, carryForward) {
+        $.ajax({
+            url: hhmgtData.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'hhmgt_update_note_carry_forward',
+                nonce: hhmgtData.nonce,
+                note_id: noteId,
+                carry_forward: carryForward
+            },
+            success: function(response) {
+                if (response.success) {
+                    showToast(response.data.message, 'success');
+                } else {
+                    showError(response.data);
+                    // Revert checkbox on error
+                    $(`.hhmgt-note-carry-forward-checkbox[data-note-id="${noteId}"]`).prop('checked', !carryForward);
+                }
+            },
+            error: function() {
+                showError(hhmgtData.strings.error);
+                // Revert checkbox on error
+                $(`.hhmgt-note-carry-forward-checkbox[data-note-id="${noteId}"]`).prop('checked', !carryForward);
+            }
+        });
+    }
+
+    /**
+     * Open status selection modal
+     */
+    function openStatusSelectionModal() {
+        if (!currentState.currentTask || !currentState.currentTask.states) {
+            showError('No states available');
+            return;
+        }
+
+        const instance = currentState.currentTask.instance;
+        const states = currentState.currentTask.states;
+
+        // Filter out complete states
+        const nonCompleteStates = states.filter(state =>
+            !(state.is_complete_state == 1 || state.is_complete_state === true)
+        );
+
+        if (nonCompleteStates.length === 0) {
+            showError('No status options available');
+            return;
+        }
+
+        // Build modal content
+        let statusOptionsHTML = '<div class="hhmgt-status-selection-grid">';
+        nonCompleteStates.forEach(function(state) {
+            statusOptionsHTML += `
+                <button type="button"
+                        class="hhmgt-status-option"
+                        data-status-id="${state.id}"
+                        style="background-color: ${state.color_hex};">
+                    ${escapeHtml(state.state_name)}
+                </button>
+            `;
+        });
+        statusOptionsHTML += '</div>';
+
+        const modalHTML = `
+            <div class="hhmgt-modal-header">
+                <h3 class="hhmgt-modal-title">Update Task Status</h3>
+                <button type="button" class="hhmgt-modal-close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="hhmgt-modal-body">
+                <p style="margin-bottom: 15px; color: #6b7280;">Select a new status for this task:</p>
+                ${statusOptionsHTML}
+            </div>
+        `;
+
+        $('#status-selection-modal .hhmgt-modal-content').html(modalHTML);
+        $('#status-selection-modal').fadeIn(200);
     }
 
     /**

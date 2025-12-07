@@ -255,6 +255,14 @@ class HHMGT_Display {
                     <!-- Completion form loaded dynamically -->
                 </div>
             </div>
+
+            <!-- Status selection modal -->
+            <div id="status-selection-modal" class="hhmgt-modal hhmgt-modal-small" style="display: none;">
+                <div class="hhmgt-modal-overlay"></div>
+                <div class="hhmgt-modal-content">
+                    <!-- Status selection loaded dynamically -->
+                </div>
+            </div>
         </div>
         <?php
     }
