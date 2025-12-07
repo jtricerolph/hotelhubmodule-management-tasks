@@ -604,6 +604,52 @@
 }
 
 /* ========================================================================
+   Status Buttons
+   ======================================================================== */
+
+.hhmgt-status-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--hhmgt-spacing-sm);
+    margin-top: var(--hhmgt-spacing-sm);
+}
+
+.hhmgt-status-btn {
+    padding: 8px 16px;
+    border: 2px solid;
+    border-radius: var(--hhmgt-radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.hhmgt-status-btn:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hhmgt-status-btn.active {
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: scale(1.05);
+}
+
+.hhmgt-modal-section {
+    margin-bottom: var(--hhmgt-spacing-lg);
+}
+
+.hhmgt-modal-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--hhmgt-text-primary);
+    margin-bottom: var(--hhmgt-spacing-sm);
+}
+
+/* ========================================================================
    Responsive
    ======================================================================== */
 

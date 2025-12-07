@@ -295,9 +295,21 @@ class HHMGT_Ajax {
             $note->note_photos = json_decode($note->note_photos, true) ?: array();
         }
 
+        // Get available states for the location
+        $table_states = $wpdb->prefix . 'hhmgt_task_states';
+        $states = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, state_name, state_slug, color_hex, is_complete_state, sort_order
+            FROM {$table_states}
+            WHERE location_id = %d
+            AND is_enabled = 1
+            ORDER BY sort_order ASC",
+            $instance->location_id
+        ));
+
         wp_send_json_success(array(
             'instance' => $instance,
-            'notes' => $notes
+            'notes' => $notes,
+            'states' => $states
         ));
     }
 

@@ -699,8 +699,33 @@
     function renderTaskModal(data) {
         const instance = data.instance;
         const notes = data.notes || [];
+        const states = data.states || [];
 
         const $modal = $('#task-modal .hhmgt-modal-content');
+
+        // Build status buttons HTML
+        let statusHTML = '';
+        if (states.length > 0) {
+            statusHTML = '<div class="hhmgt-modal-section"><h4 class="hhmgt-modal-section-title">Status</h4><div class="hhmgt-status-buttons">';
+
+            states.forEach(function(state) {
+                const isActive = state.id == instance.status_id;
+                const activeClass = isActive ? ' active' : '';
+                const isComplete = state.is_complete_state == 1 || state.is_complete_state === true;
+
+                statusHTML += `
+                    <button type="button"
+                            class="hhmgt-status-btn${activeClass}"
+                            data-status-id="${state.id}"
+                            data-is-complete="${isComplete ? '1' : '0'}"
+                            style="background-color: ${state.color_hex}; border-color: ${state.color_hex};">
+                        ${escapeHtml(state.state_name)}
+                    </button>
+                `;
+            });
+
+            statusHTML += '</div></div>';
+        }
 
         // Build checklist HTML
         let checklistHTML = '';
@@ -796,6 +821,7 @@
                         <p class="hhmgt-modal-description">${escapeHtml(instance.description)}</p>
                     </div>
                 ` : ''}
+                ${statusHTML}
                 ${checklistHTML}
                 ${reminderHTML}
                 ${notesHTML}
