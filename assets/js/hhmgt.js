@@ -13,9 +13,9 @@
     let currentState = {
         location_id: null,
         filters: {
-            date_from: null,
-            date_to: null,
+            include_future: true,
             department: '',
+            status: '',
             location_type: '',
             location: 0,
             show_completed: false,
@@ -73,12 +73,24 @@
      * Initialize filters
      */
     function initFilters() {
-        // Set default date range
-        const dateFrom = $('#filter-date-from').val();
-        const dateTo = $('#filter-date-to').val();
+        // Filters toggle
+        $('#filters-toggle').on('click', function() {
+            const $content = $('#filters-content');
+            const $icon = $('.hhmgt-toggle-icon');
 
-        currentState.filters.date_from = dateFrom;
-        currentState.filters.date_to = dateTo;
+            $content.slideToggle(200, function() {
+                if ($content.is(':visible')) {
+                    $icon.text('expand_less');
+                } else {
+                    $icon.text('expand_more');
+                }
+            });
+        });
+
+        // Location type change triggers location load
+        $('#filter-location-type').on('change', function() {
+            loadLocations($(this).val());
+        });
     }
 
     /**
@@ -95,10 +107,15 @@
                 const filters = JSON.parse(saved);
                 debugLog('Saved filters found:', filters);
 
-                // Only restore specific filters (not dates)
+                // Restore filters
                 if (filters.department) {
                     currentState.filters.department = filters.department;
                     $('#filter-department').val(filters.department);
+                }
+
+                if (filters.status) {
+                    currentState.filters.status = filters.status;
+                    $('#filter-status').val(filters.status);
                 }
 
                 if (filters.location_type) {
@@ -114,6 +131,11 @@
                 if (filters.group_by) {
                     currentState.filters.group_by = filters.group_by;
                     $('#filter-group-by').val(filters.group_by);
+                }
+
+                if (filters.include_future !== undefined) {
+                    currentState.filters.include_future = filters.include_future;
+                    $('#filter-include-future').prop('checked', filters.include_future);
                 }
 
                 if (filters.show_completed !== undefined) {
@@ -139,9 +161,11 @@
         // Only save specific filters
         const filtersToSave = {
             department: currentState.filters.department,
+            status: currentState.filters.status,
             location_type: currentState.filters.location_type,
             location: currentState.filters.location,
             group_by: currentState.filters.group_by,
+            include_future: currentState.filters.include_future,
             show_completed: currentState.filters.show_completed
         };
 
@@ -224,9 +248,9 @@
      */
     function applyFilters() {
         currentState.filters = {
-            date_from: $('#filter-date-from').val(),
-            date_to: $('#filter-date-to').val(),
+            include_future: $('#filter-include-future').is(':checked'),
             department: $('#filter-department').val(),
+            status: $('#filter-status').val(),
             location_type: $('#filter-location-type').val(),
             location: $('#filter-location').val(),
             show_completed: $('#filter-show-completed').is(':checked'),

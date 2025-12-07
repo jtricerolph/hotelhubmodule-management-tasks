@@ -79,90 +79,109 @@ class HHMGT_Display {
             </div>
 
             <!-- Filters -->
-            <div class="hhmgt-filters">
-                <div class="hhmgt-filter-row">
-                    <!-- Department filter -->
-                    <div class="hhmgt-filter-group">
-                        <label for="filter-department"><?php esc_html_e('Department', 'hhmgt'); ?></label>
-                        <select id="filter-department" class="hhmgt-filter-select">
-                            <option value=""><?php esc_html_e('All Departments', 'hhmgt'); ?></option>
-                            <?php if (!empty($settings['departments'])): ?>
-                                <?php foreach ($settings['departments'] as $dept): ?>
-                                    <?php if ($dept['is_enabled']): ?>
-                                        <option value="<?php echo esc_attr($dept['dept_slug']); ?>">
-                                            <?php echo esc_html($dept['dept_name']); ?>
-                                        </option>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
-                    </div>
-
-                    <!-- Location Type filter -->
-                    <div class="hhmgt-filter-group">
-                        <label for="filter-location-type"><?php esc_html_e('Location Type', 'hhmgt'); ?></label>
-                        <select id="filter-location-type" class="hhmgt-filter-select">
-                            <option value=""><?php esc_html_e('All Types', 'hhmgt'); ?></option>
-                            <!-- Populated dynamically via AJAX -->
-                        </select>
-                    </div>
-
-                    <!-- Location filter -->
-                    <div class="hhmgt-filter-group">
-                        <label for="filter-location"><?php esc_html_e('Location', 'hhmgt'); ?></label>
-                        <select id="filter-location" class="hhmgt-filter-select">
-                            <option value=""><?php esc_html_e('All Locations', 'hhmgt'); ?></option>
-                            <!-- Populated dynamically via AJAX based on type -->
-                        </select>
-                    </div>
-
-                    <!-- Date range -->
-                    <div class="hhmgt-filter-group">
-                        <label for="filter-date-from"><?php esc_html_e('From', 'hhmgt'); ?></label>
-                        <input type="date" id="filter-date-from" class="hhmgt-filter-input"
-                               value="<?php echo esc_attr(date('Y-m-d', strtotime('-7 days'))); ?>">
-                    </div>
-
-                    <div class="hhmgt-filter-group">
-                        <label for="filter-date-to"><?php esc_html_e('To', 'hhmgt'); ?></label>
-                        <input type="date" id="filter-date-to" class="hhmgt-filter-input"
-                               value="<?php echo esc_attr(date('Y-m-d', strtotime('+7 days'))); ?>">
-                    </div>
+            <div class="hhmgt-filters-wrapper">
+                <div class="hhmgt-filters-header" id="filters-toggle">
+                    <span class="material-symbols-outlined">filter_list</span>
+                    <span><?php esc_html_e('Filters & Grouping', 'hhmgt'); ?></span>
+                    <span class="material-symbols-outlined hhmgt-toggle-icon">expand_more</span>
                 </div>
+                <div class="hhmgt-filters-content" id="filters-content">
+                    <div class="hhmgt-filter-row">
+                        <!-- Department filter -->
+                        <div class="hhmgt-filter-group">
+                            <label for="filter-department"><?php esc_html_e('Department', 'hhmgt'); ?></label>
+                            <select id="filter-department" class="hhmgt-filter-select">
+                                <option value=""><?php esc_html_e('All Departments', 'hhmgt'); ?></option>
+                                <?php if (!empty($settings['departments'])): ?>
+                                    <?php foreach ($settings['departments'] as $dept): ?>
+                                        <?php if ($dept['is_enabled']): ?>
+                                            <option value="<?php echo esc_attr($dept['dept_slug']); ?>">
+                                                <?php echo esc_html($dept['dept_name']); ?>
+                                            </option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
 
-                <div class="hhmgt-filter-row">
-                    <!-- Show completed toggle -->
-                    <div class="hhmgt-filter-group">
-                        <label class="hhmgt-checkbox-label">
-                            <input type="checkbox" id="filter-show-completed" class="hhmgt-filter-checkbox">
-                            <span><?php esc_html_e('Show Completed', 'hhmgt'); ?></span>
-                        </label>
+                        <!-- Status filter -->
+                        <div class="hhmgt-filter-group">
+                            <label for="filter-status"><?php esc_html_e('Status', 'hhmgt'); ?></label>
+                            <select id="filter-status" class="hhmgt-filter-select">
+                                <option value=""><?php esc_html_e('All Statuses', 'hhmgt'); ?></option>
+                                <?php if (!empty($settings['task_states'])): ?>
+                                    <?php foreach ($settings['task_states'] as $state): ?>
+                                        <?php if ($state['is_enabled']): ?>
+                                            <option value="<?php echo esc_attr($state['state_slug']); ?>">
+                                                <?php echo esc_html($state['state_name']); ?>
+                                            </option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+
+                        <!-- Location Type filter -->
+                        <div class="hhmgt-filter-group">
+                            <label for="filter-location-type"><?php esc_html_e('Location Type', 'hhmgt'); ?></label>
+                            <select id="filter-location-type" class="hhmgt-filter-select">
+                                <option value=""><?php esc_html_e('All Types', 'hhmgt'); ?></option>
+                                <!-- Populated dynamically via AJAX -->
+                            </select>
+                        </div>
+
+                        <!-- Location filter -->
+                        <div class="hhmgt-filter-group">
+                            <label for="filter-location"><?php esc_html_e('Location', 'hhmgt'); ?></label>
+                            <select id="filter-location" class="hhmgt-filter-select">
+                                <option value=""><?php esc_html_e('All Locations', 'hhmgt'); ?></option>
+                                <!-- Populated dynamically via AJAX based on type -->
+                            </select>
+                        </div>
                     </div>
 
-                    <!-- Group by -->
-                    <div class="hhmgt-filter-group">
-                        <label for="filter-group-by"><?php esc_html_e('Group By', 'hhmgt'); ?></label>
-                        <select id="filter-group-by" class="hhmgt-filter-select">
-                            <option value=""><?php esc_html_e('None', 'hhmgt'); ?></option>
-                            <option value="location"><?php esc_html_e('Location', 'hhmgt'); ?></option>
-                            <option value="department"><?php esc_html_e('Department', 'hhmgt'); ?></option>
-                            <option value="status"><?php esc_html_e('Status', 'hhmgt'); ?></option>
-                        </select>
-                    </div>
+                    <div class="hhmgt-filter-row">
+                        <!-- Include future tasks toggle -->
+                        <div class="hhmgt-filter-group">
+                            <label class="hhmgt-checkbox-label">
+                                <input type="checkbox" id="filter-include-future" class="hhmgt-filter-checkbox" checked>
+                                <span><?php esc_html_e('Include Future Tasks', 'hhmgt'); ?></span>
+                            </label>
+                        </div>
 
-                    <!-- Search -->
-                    <div class="hhmgt-filter-group hhmgt-filter-search">
-                        <label for="filter-search"><?php esc_html_e('Search', 'hhmgt'); ?></label>
-                        <input type="text" id="filter-search" class="hhmgt-filter-input"
-                               placeholder="<?php esc_attr_e('Search tasks...', 'hhmgt'); ?>">
-                    </div>
+                        <!-- Show completed toggle -->
+                        <div class="hhmgt-filter-group">
+                            <label class="hhmgt-checkbox-label">
+                                <input type="checkbox" id="filter-show-completed" class="hhmgt-filter-checkbox">
+                                <span><?php esc_html_e('Show Completed', 'hhmgt'); ?></span>
+                            </label>
+                        </div>
 
-                    <!-- Apply filters button -->
-                    <div class="hhmgt-filter-group">
-                        <button id="apply-filters" class="hhmgt-btn hhmgt-btn-primary">
-                            <span class="material-symbols-outlined">filter_list</span>
-                            <?php esc_html_e('Apply Filters', 'hhmgt'); ?>
-                        </button>
+                        <!-- Group by -->
+                        <div class="hhmgt-filter-group">
+                            <label for="filter-group-by"><?php esc_html_e('Group By', 'hhmgt'); ?></label>
+                            <select id="filter-group-by" class="hhmgt-filter-select">
+                                <option value=""><?php esc_html_e('None', 'hhmgt'); ?></option>
+                                <option value="location"><?php esc_html_e('Location', 'hhmgt'); ?></option>
+                                <option value="department"><?php esc_html_e('Department', 'hhmgt'); ?></option>
+                                <option value="status"><?php esc_html_e('Status', 'hhmgt'); ?></option>
+                            </select>
+                        </div>
+
+                        <!-- Search -->
+                        <div class="hhmgt-filter-group hhmgt-filter-search">
+                            <label for="filter-search"><?php esc_html_e('Search', 'hhmgt'); ?></label>
+                            <input type="text" id="filter-search" class="hhmgt-filter-input"
+                                   placeholder="<?php esc_attr_e('Search tasks...', 'hhmgt'); ?>">
+                        </div>
+
+                        <!-- Apply filters button -->
+                        <div class="hhmgt-filter-group">
+                            <button id="apply-filters" class="hhmgt-btn hhmgt-btn-primary">
+                                <span class="material-symbols-outlined">filter_list</span>
+                                <?php esc_html_e('Apply Filters', 'hhmgt'); ?>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

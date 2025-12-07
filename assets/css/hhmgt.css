@@ -84,12 +84,43 @@
    Filters
    ======================================================================== */
 
-.hhmgt-filters {
+.hhmgt-filters-wrapper {
     background: var(--hhmgt-bg-white);
     border: 1px solid var(--hhmgt-border);
     border-radius: var(--hhmgt-radius-md);
-    padding: var(--hhmgt-spacing-md);
     margin-bottom: var(--hhmgt-spacing-md);
+    overflow: hidden;
+}
+
+.hhmgt-filters-header {
+    display: flex;
+    align-items: center;
+    gap: var(--hhmgt-spacing-sm);
+    padding: var(--hhmgt-spacing-md);
+    background: var(--hhmgt-bg-light);
+    border-bottom: 1px solid var(--hhmgt-border);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.hhmgt-filters-header:hover {
+    background: #f3f4f6;
+}
+
+.hhmgt-filters-header span:nth-child(2) {
+    flex: 1;
+    font-weight: 500;
+    color: var(--hhmgt-text-primary);
+}
+
+.hhmgt-toggle-icon {
+    transition: transform 0.2s;
+}
+
+.hhmgt-filters-content {
+    padding: var(--hhmgt-spacing-md);
+    display: none;
 }
 
 .hhmgt-filter-row {

@@ -54,14 +54,18 @@ class HHMGT_Ajax {
 
         // Get parameters
         $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
-        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : date('Y-m-d', strtotime('-7 days'));
-        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : date('Y-m-d', strtotime('+7 days'));
+        $include_future = isset($_POST['include_future']) ? (bool)$_POST['include_future'] : true;
         $department = isset($_POST['department']) ? sanitize_text_field($_POST['department']) : '';
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
         $location_type = isset($_POST['location_type']) ? sanitize_text_field($_POST['location_type']) : '';
         $location_filter = isset($_POST['location']) ? intval($_POST['location']) : 0;
         $show_completed = isset($_POST['show_completed']) ? (bool)$_POST['show_completed'] : false;
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
         $group_by = isset($_POST['group_by']) ? sanitize_text_field($_POST['group_by']) : '';
+
+        // Calculate date range: today + optional future
+        $date_from = date('Y-m-d');
+        $date_to = $include_future ? date('Y-m-d', strtotime('+30 days')) : date('Y-m-d');
 
         if (!$location_id) {
             wp_send_json_error(array('message' => __('Invalid location', 'hhmgt')));
@@ -88,6 +92,12 @@ class HHMGT_Ajax {
         if ($department) {
             $where_clauses[] = "d.dept_slug = %s";
             $where_values[] = $department;
+        }
+
+        // Filter by status
+        if ($status) {
+            $where_clauses[] = "s.state_slug = %s";
+            $where_values[] = $status;
         }
 
         // Filter by location type
@@ -146,7 +156,7 @@ class HHMGT_Ajax {
 
         // Debug logging
         error_log("[HHMGT] Task query - Location: $location_id, Date: $date_from to $date_to, Results: " . count($results));
-        error_log("[HHMGT] Filters applied - Dept: '$department', LocType: '$location_type', LocFilter: '$location_filter', Search: '$search', ShowCompleted: " . ($show_completed ? 'yes' : 'no'));
+        error_log("[HHMGT] Filters applied - Dept: '$department', Status: '$status', LocType: '$location_type', LocFilter: '$location_filter', Search: '$search', IncludeFuture: " . ($include_future ? 'yes' : 'no') . ", ShowCompleted: " . ($show_completed ? 'yes' : 'no'));
 
         if ($wpdb->last_error) {
             error_log("[HHMGT] SQL Error: " . $wpdb->last_error);
