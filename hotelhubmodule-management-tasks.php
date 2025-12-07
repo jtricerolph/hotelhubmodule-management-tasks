@@ -316,6 +316,33 @@ class HotelHub_Management_Tasks {
 
         // Update DB version
         update_option('hhmgt_db_version', HHMGT_VERSION);
+
+        // Run migrations
+        $this->run_migrations();
+    }
+
+    /**
+     * Run database migrations
+     */
+    private function run_migrations() {
+        global $wpdb;
+
+        $current_version = get_option('hhmgt_db_version', '0.0.0');
+
+        // Migration: Add checklist_started_state column if it doesn't exist
+        if (version_compare($current_version, '1.0.0', '<')) {
+            $table_states = $wpdb->prefix . 'hhmgt_task_states';
+
+            // Check if column exists
+            $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$table_states} LIKE 'checklist_started_state'");
+
+            if (empty($column_exists)) {
+                $wpdb->query("ALTER TABLE {$table_states}
+                    ADD COLUMN checklist_started_state BOOLEAN DEFAULT FALSE
+                    COMMENT 'Auto-update to this state when checklist started'
+                    AFTER is_complete_state");
+            }
+        }
     }
 
     /**

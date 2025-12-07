@@ -336,12 +336,16 @@ class HHMGT_Settings {
         global $wpdb;
         $table = $wpdb->prefix . 'hhmgt_task_states';
 
+        // Start transaction (if supported)
+        $wpdb->query('START TRANSACTION');
+
         // Delete existing states for this location
         $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
 
         // Insert new states
+        $success = true;
         foreach ($states as $state) {
-            $wpdb->insert(
+            $inserted = $wpdb->insert(
                 $table,
                 array(
                     'location_id' => $location_id,
@@ -356,6 +360,20 @@ class HHMGT_Settings {
                 ),
                 array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d')
             );
+
+            if ($inserted === false) {
+                $success = false;
+                error_log("[HHMGT] Failed to insert state: " . $state['state_name'] . " - Error: " . $wpdb->last_error);
+                break;
+            }
+        }
+
+        // Rollback if any insert failed
+        if (!$success) {
+            $wpdb->query('ROLLBACK');
+            error_log("[HHMGT] States sync failed, rolling back changes for location $location_id");
+        } else {
+            $wpdb->query('COMMIT');
         }
     }
 
