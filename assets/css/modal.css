@@ -77,20 +77,33 @@
 
 .hhmgt-modal-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     padding: 20px 24px;
     border-bottom: 1px solid #e5e7eb;
     flex-shrink: 0;
 }
 
+.hhmgt-modal-header-content {
+    flex: 1;
+    min-width: 0;
+}
+
 .hhmgt-modal-title {
     font-size: 18px;
     font-weight: 600;
     color: #1f2937;
-    margin: 0;
-    flex: 1;
-    min-width: 0;
+    margin: 0 0 8px 0;
+}
+
+.hhmgt-header-status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    margin-top: 4px;
 }
 
 .hhmgt-modal-close {

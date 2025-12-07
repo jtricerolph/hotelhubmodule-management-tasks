@@ -719,20 +719,13 @@
 
         const $modal = $('#task-modal .hhmgt-modal-content');
 
-        // Build compact status badge HTML
-        let statusHTML = '';
+        // Build compact status badge HTML for header
+        let statusBadgeHTML = '';
         if (states.length > 0) {
             // Find current status
             const currentStatus = states.find(state => state.id == instance.status_id);
             if (currentStatus) {
-                statusHTML = `
-                    <div class="hhmgt-modal-section">
-                        <h4 class="hhmgt-modal-section-title">Current Status</h4>
-                        <div class="hhmgt-current-status-badge" style="background-color: ${currentStatus.color_hex};">
-                            ${escapeHtml(currentStatus.state_name)}
-                        </div>
-                    </div>
-                `;
+                statusBadgeHTML = `<div class="hhmgt-header-status-badge" style="background-color: ${currentStatus.color_hex};">${escapeHtml(currentStatus.state_name)}</div>`;
             }
         }
 
@@ -843,7 +836,10 @@
 
         const modalHTML = `
             <div class="hhmgt-modal-header">
-                <h2 class="hhmgt-modal-title">${escapeHtml(instance.task_name)} - ${escapeHtml(instance.location_path || 'Location')}</h2>
+                <div class="hhmgt-modal-header-content">
+                    <h2 class="hhmgt-modal-title">${escapeHtml(instance.task_name)} - ${escapeHtml(instance.location_path || 'Location')}</h2>
+                    ${statusBadgeHTML}
+                </div>
                 <button type="button" class="hhmgt-modal-close">
                     <span class="material-symbols-outlined">close</span>
                 </button>
@@ -855,12 +851,11 @@
                         <p class="hhmgt-modal-description">${escapeHtml(instance.description)}</p>
                     </div>
                 ` : ''}
-                ${statusHTML}
                 ${checklistHTML}
                 ${reminderHTML}
-                ${actionButtonsHTML}
                 ${notesHTML}
                 ${addNoteHTML}
+                ${actionButtonsHTML}
             </div>
         `;
 
@@ -1081,8 +1076,14 @@
      * Open completion modal
      */
     function openCompletionModal() {
-        // TODO: Implement completion modal
-        showToast('Completion modal coming soon', 'warning');
+        if (!currentState.currentTask) return;
+
+        const instance = currentState.currentTask.instance;
+
+        // Simple confirmation for now
+        if (confirm('Mark this task as complete?')) {
+            completeTask();
+        }
     }
 
     /**
