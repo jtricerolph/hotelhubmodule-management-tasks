@@ -90,8 +90,7 @@ class HHMGT_Display {
                         <!-- Department filter -->
                         <div class="hhmgt-filter-group">
                             <label for="filter-department"><?php esc_html_e('Department', 'hhmgt'); ?></label>
-                            <select id="filter-department" class="hhmgt-filter-select">
-                                <option value=""><?php esc_html_e('All Departments', 'hhmgt'); ?></option>
+                            <select id="filter-department" class="hhmgt-filter-select" multiple size="3">
                                 <?php if (!empty($settings['departments'])): ?>
                                     <?php foreach ($settings['departments'] as $dept): ?>
                                         <?php if ($dept['is_enabled']): ?>
@@ -102,13 +101,13 @@ class HHMGT_Display {
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>
+                            <small class="hhmgt-filter-help"><?php esc_html_e('Hold Ctrl/Cmd to select multiple', 'hhmgt'); ?></small>
                         </div>
 
                         <!-- Status filter -->
                         <div class="hhmgt-filter-group">
                             <label for="filter-status"><?php esc_html_e('Status', 'hhmgt'); ?></label>
-                            <select id="filter-status" class="hhmgt-filter-select">
-                                <option value=""><?php esc_html_e('All Statuses', 'hhmgt'); ?></option>
+                            <select id="filter-status" class="hhmgt-filter-select" multiple size="3">
                                 <?php if (!empty($settings['task_states'])): ?>
                                     <?php foreach ($settings['task_states'] as $state): ?>
                                         <?php if ($state['is_enabled']): ?>
@@ -119,24 +118,25 @@ class HHMGT_Display {
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>
+                            <small class="hhmgt-filter-help"><?php esc_html_e('Hold Ctrl/Cmd to select multiple', 'hhmgt'); ?></small>
                         </div>
 
                         <!-- Location Type filter -->
                         <div class="hhmgt-filter-group">
                             <label for="filter-location-type"><?php esc_html_e('Location Type', 'hhmgt'); ?></label>
-                            <select id="filter-location-type" class="hhmgt-filter-select">
-                                <option value=""><?php esc_html_e('All Types', 'hhmgt'); ?></option>
+                            <select id="filter-location-type" class="hhmgt-filter-select" multiple size="3">
                                 <!-- Populated dynamically via AJAX -->
                             </select>
+                            <small class="hhmgt-filter-help"><?php esc_html_e('Hold Ctrl/Cmd to select multiple', 'hhmgt'); ?></small>
                         </div>
 
                         <!-- Location filter -->
                         <div class="hhmgt-filter-group">
                             <label for="filter-location"><?php esc_html_e('Location', 'hhmgt'); ?></label>
-                            <select id="filter-location" class="hhmgt-filter-select">
-                                <option value=""><?php esc_html_e('All Locations', 'hhmgt'); ?></option>
+                            <select id="filter-location" class="hhmgt-filter-select" multiple size="3">
                                 <!-- Populated dynamically via AJAX based on type -->
                             </select>
+                            <small class="hhmgt-filter-help"><?php esc_html_e('Hold Ctrl/Cmd to select multiple', 'hhmgt'); ?></small>
                         </div>
                     </div>
 

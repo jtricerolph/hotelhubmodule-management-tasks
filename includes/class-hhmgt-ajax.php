@@ -55,16 +55,26 @@ class HHMGT_Ajax {
         // Get parameters
         $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
         $include_future = isset($_POST['include_future']) ? (bool)$_POST['include_future'] : true;
-        $department = isset($_POST['department']) ? sanitize_text_field($_POST['department']) : '';
-        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
-        $location_type = isset($_POST['location_type']) ? sanitize_text_field($_POST['location_type']) : '';
-        $location_filter = isset($_POST['location']) ? intval($_POST['location']) : 0;
+
+        // Handle multi-select filters (can be arrays or single values)
+        $departments = isset($_POST['department']) ? (array)$_POST['department'] : array();
+        $departments = array_filter(array_map('sanitize_text_field', $departments));
+
+        $statuses = isset($_POST['status']) ? (array)$_POST['status'] : array();
+        $statuses = array_filter(array_map('sanitize_text_field', $statuses));
+
+        $location_types = isset($_POST['location_type']) ? (array)$_POST['location_type'] : array();
+        $location_types = array_filter(array_map('sanitize_text_field', $location_types));
+
+        $location_filters = isset($_POST['location']) ? (array)$_POST['location'] : array();
+        $location_filters = array_filter(array_map('intval', $location_filters));
+
         $show_completed = isset($_POST['show_completed']) ? (bool)$_POST['show_completed'] : false;
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
         $group_by = isset($_POST['group_by']) ? sanitize_text_field($_POST['group_by']) : '';
 
-        // Calculate date range: today + optional future
-        $date_from = date('Y-m-d');
+        // Calculate date range: always include past (for overdue tasks)
+        $date_from = date('Y-m-d', strtotime('-90 days')); // Include overdue tasks up to 90 days back
         $date_to = $include_future ? date('Y-m-d', strtotime('+30 days')) : date('Y-m-d');
 
         if (!$location_id) {
@@ -88,28 +98,32 @@ class HHMGT_Ajax {
         );
         $where_values = array($location_id, $date_from, $date_to);
 
-        // Filter by department
-        if ($department) {
-            $where_clauses[] = "d.dept_slug = %s";
-            $where_values[] = $department;
+        // Filter by department (multi-select)
+        if (!empty($departments)) {
+            $placeholders = implode(', ', array_fill(0, count($departments), '%s'));
+            $where_clauses[] = "d.dept_slug IN ($placeholders)";
+            $where_values = array_merge($where_values, $departments);
         }
 
-        // Filter by status
-        if ($status) {
-            $where_clauses[] = "s.state_slug = %s";
-            $where_values[] = $status;
+        // Filter by status (multi-select)
+        if (!empty($statuses)) {
+            $placeholders = implode(', ', array_fill(0, count($statuses), '%s'));
+            $where_clauses[] = "s.state_slug IN ($placeholders)";
+            $where_values = array_merge($where_values, $statuses);
         }
 
-        // Filter by location type
-        if ($location_type) {
-            $where_clauses[] = "l.location_type = %s";
-            $where_values[] = $location_type;
+        // Filter by location type (multi-select)
+        if (!empty($location_types)) {
+            $placeholders = implode(', ', array_fill(0, count($location_types), '%s'));
+            $where_clauses[] = "l.location_type IN ($placeholders)";
+            $where_values = array_merge($where_values, $location_types);
         }
 
-        // Filter by specific location (use instance's location_hierarchy_id)
-        if ($location_filter) {
-            $where_clauses[] = "i.location_hierarchy_id = %d";
-            $where_values[] = $location_filter;
+        // Filter by specific location (multi-select - use instance's location_hierarchy_id)
+        if (!empty($location_filters)) {
+            $placeholders = implode(', ', array_fill(0, count($location_filters), '%d'));
+            $where_clauses[] = "i.location_hierarchy_id IN ($placeholders)";
+            $where_values = array_merge($where_values, $location_filters);
         }
 
         // Filter completed
@@ -156,7 +170,7 @@ class HHMGT_Ajax {
 
         // Debug logging
         error_log("[HHMGT] Task query - Location: $location_id, Date: $date_from to $date_to, Results: " . count($results));
-        error_log("[HHMGT] Filters applied - Dept: '$department', Status: '$status', LocType: '$location_type', LocFilter: '$location_filter', Search: '$search', IncludeFuture: " . ($include_future ? 'yes' : 'no') . ", ShowCompleted: " . ($show_completed ? 'yes' : 'no'));
+        error_log("[HHMGT] Filters applied - Depts: [" . implode(', ', $departments) . "], Statuses: [" . implode(', ', $statuses) . "], LocTypes: [" . implode(', ', $location_types) . "], LocFilters: [" . implode(', ', $location_filters) . "], Search: '$search', IncludeFuture: " . ($include_future ? 'yes' : 'no') . ", ShowCompleted: " . ($show_completed ? 'yes' : 'no'));
 
         if ($wpdb->last_error) {
             error_log("[HHMGT] SQL Error: " . $wpdb->last_error);
@@ -548,7 +562,10 @@ class HHMGT_Ajax {
         check_ajax_referer('hhmgt_ajax_nonce', 'nonce');
 
         $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
-        $location_type = isset($_POST['location_type']) ? sanitize_text_field($_POST['location_type']) : '';
+
+        // Handle multi-select location types (can be array or single value)
+        $location_types = isset($_POST['location_type']) ? (array)$_POST['location_type'] : array();
+        $location_types = array_filter(array_map('sanitize_text_field', $location_types));
 
         if (!$location_id) {
             wp_send_json_error(array('message' => __('Invalid location', 'hhmgt')));
@@ -559,10 +576,15 @@ class HHMGT_Ajax {
         $where_clauses = array("location_id = %d", "is_enabled = 1");
         $where_values = array($location_id);
 
-        // If type is "General" (our fallback), get all locations
-        if ($location_type && $location_type !== 'General') {
-            $where_clauses[] = "location_type = %s";
-            $where_values[] = $location_type;
+        // Filter by location types if specified (excluding "General")
+        $filtered_types = array_filter($location_types, function($type) {
+            return $type !== 'General' && $type !== '';
+        });
+
+        if (!empty($filtered_types)) {
+            $placeholders = implode(', ', array_fill(0, count($filtered_types), '%s'));
+            $where_clauses[] = "location_type IN ($placeholders)";
+            $where_values = array_merge($where_values, $filtered_types);
         }
 
         $where_sql = implode(' AND ', $where_clauses);
@@ -575,7 +597,7 @@ class HHMGT_Ajax {
             $where_values
         ));
 
-        error_log("[HHMGT] Loaded " . count($locations) . " locations for location_id=$location_id, type=$location_type");
+        error_log("[HHMGT] Loaded " . count($locations) . " locations for location_id=$location_id, types=[" . implode(', ', $location_types) . "]");
 
         wp_send_json_success(array('locations' => $locations));
     }

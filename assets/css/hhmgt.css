@@ -184,6 +184,13 @@
     cursor: pointer;
 }
 
+.hhmgt-filter-help {
+    font-size: 11px;
+    color: var(--hhmgt-text-secondary);
+    font-style: italic;
+    margin-top: 2px;
+}
+
 /* ========================================================================
    Buttons
    ======================================================================== */

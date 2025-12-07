@@ -14,10 +14,10 @@
         location_id: null,
         filters: {
             include_future: true,
-            department: '',
-            status: '',
-            location_type: '',
-            location: 0,
+            department: [], // Multi-select
+            status: [], // Multi-select
+            location_type: [], // Multi-select
+            location: [], // Multi-select
             show_completed: false,
             search: '',
             group_by: ''
@@ -107,24 +107,24 @@
                 const filters = JSON.parse(saved);
                 debugLog('Saved filters found:', filters);
 
-                // Restore filters
+                // Restore filters (handle both array and single values for backwards compatibility)
                 if (filters.department) {
-                    currentState.filters.department = filters.department;
-                    $('#filter-department').val(filters.department);
+                    currentState.filters.department = Array.isArray(filters.department) ? filters.department : [filters.department];
+                    $('#filter-department').val(currentState.filters.department);
                 }
 
                 if (filters.status) {
-                    currentState.filters.status = filters.status;
-                    $('#filter-status').val(filters.status);
+                    currentState.filters.status = Array.isArray(filters.status) ? filters.status : [filters.status];
+                    $('#filter-status').val(currentState.filters.status);
                 }
 
                 if (filters.location_type) {
-                    currentState.filters.location_type = filters.location_type;
-                    $('#filter-location-type').val(filters.location_type);
+                    currentState.filters.location_type = Array.isArray(filters.location_type) ? filters.location_type : [filters.location_type];
+                    $('#filter-location-type').val(currentState.filters.location_type);
                 }
 
                 if (filters.location) {
-                    currentState.filters.location = filters.location;
+                    currentState.filters.location = Array.isArray(filters.location) ? filters.location : [filters.location];
                     // Location will be loaded after types are populated
                 }
 
@@ -249,10 +249,10 @@
     function applyFilters() {
         currentState.filters = {
             include_future: $('#filter-include-future').is(':checked'),
-            department: $('#filter-department').val(),
-            status: $('#filter-status').val(),
-            location_type: $('#filter-location-type').val(),
-            location: $('#filter-location').val(),
+            department: $('#filter-department').val() || [], // Multi-select returns array or null
+            status: $('#filter-status').val() || [], // Multi-select returns array or null
+            location_type: $('#filter-location-type').val() || [], // Multi-select returns array or null
+            location: $('#filter-location').val() || [], // Multi-select returns array or null
             show_completed: $('#filter-show-completed').is(':checked'),
             search: $('#filter-search').val(),
             group_by: $('#filter-group-by').val()
@@ -316,16 +316,19 @@
     /**
      * Load locations by type
      */
-    function loadLocations(locationType) {
+    function loadLocations(locationTypes) {
         const $select = $('#filter-location');
-        $select.find('option:not(:first)').remove();
+        $select.find('option').remove();
 
-        if (!locationType) {
+        // Convert to array if single value (for backwards compatibility)
+        const types = Array.isArray(locationTypes) ? locationTypes : (locationTypes ? [locationTypes] : []);
+
+        if (types.length === 0) {
             debugLog('No location type selected, skipping location load');
             return;
         }
 
-        debugLog('Loading locations for type:', locationType);
+        debugLog('Loading locations for types:', types);
 
         $.ajax({
             url: hhmgtData.ajax_url,
@@ -334,23 +337,23 @@
                 action: 'hhmgt_get_locations',
                 nonce: hhmgtData.nonce,
                 location_id: currentState.location_id,
-                location_type: locationType
+                location_type: types // Send array to backend
             },
             success: function(response) {
                 debugLog('Locations response:', response);
 
                 if (response.success && response.data.locations) {
                     if (response.data.locations.length === 0) {
-                        debugLog('Warning: No locations found for type:', locationType);
-                        $select.after('<small style="color: #dc2626; display: block; margin-top: 4px;">No locations found for this type.</small>');
+                        debugLog('Warning: No locations found for types:', types);
+                        $select.after('<small style="color: #dc2626; display: block; margin-top: 4px;">No locations found for selected types.</small>');
                     } else {
                         response.data.locations.forEach(function(loc) {
                             $select.append(`<option value="${loc.id}">${loc.full_path || loc.location_name}</option>`);
                         });
                         debugLog('Locations loaded:', response.data.locations.length);
 
-                        // Restore saved location after options are added
-                        if (currentState.filters.location) {
+                        // Restore saved locations after options are added
+                        if (currentState.filters.location && Array.isArray(currentState.filters.location)) {
                             $select.val(currentState.filters.location);
                         }
                     }
