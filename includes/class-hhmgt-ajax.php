@@ -54,7 +54,7 @@ class HHMGT_Ajax {
 
         // Get parameters
         $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
-        $include_future = isset($_POST['include_future']) ? (bool)$_POST['include_future'] : true;
+        $include_future = isset($_POST['include_future']) ? filter_var($_POST['include_future'], FILTER_VALIDATE_BOOLEAN) : true;
 
         // Handle multi-select filters (can be arrays or single values)
         $departments = isset($_POST['department']) ? (array)$_POST['department'] : array();
@@ -69,7 +69,7 @@ class HHMGT_Ajax {
         $location_filters = isset($_POST['location']) ? (array)$_POST['location'] : array();
         $location_filters = array_filter(array_map('intval', $location_filters));
 
-        $show_completed = isset($_POST['show_completed']) ? (bool)$_POST['show_completed'] : false;
+        $show_completed = isset($_POST['show_completed']) ? filter_var($_POST['show_completed'], FILTER_VALIDATE_BOOLEAN) : false;
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
         $group_by = isset($_POST['group_by']) ? sanitize_text_field($_POST['group_by']) : '';
 
@@ -404,7 +404,7 @@ class HHMGT_Ajax {
 
         $instance_id = isset($_POST['instance_id']) ? intval($_POST['instance_id']) : 0;
         $note_text = isset($_POST['note_text']) ? sanitize_textarea_field($_POST['note_text']) : '';
-        $carry_forward = isset($_POST['carry_forward']) ? (bool)$_POST['carry_forward'] : true;
+        $carry_forward = isset($_POST['carry_forward']) ? filter_var($_POST['carry_forward'], FILTER_VALIDATE_BOOLEAN) : true;
         $note_photos = isset($_POST['note_photos']) ? array_map('intval', $_POST['note_photos']) : array();
 
         if (!$instance_id || !$note_text) {
