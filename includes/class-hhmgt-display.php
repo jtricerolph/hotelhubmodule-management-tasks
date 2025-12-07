@@ -89,54 +89,100 @@ class HHMGT_Display {
                     <div class="hhmgt-filter-row">
                         <!-- Department filter -->
                         <div class="hhmgt-filter-group">
-                            <label for="filter-department"><?php esc_html_e('Department', 'hhmgt'); ?></label>
-                            <select id="filter-department" class="hhmgt-filter-select" multiple size="3">
-                                <?php if (!empty($settings['departments'])): ?>
-                                    <?php foreach ($settings['departments'] as $dept): ?>
-                                        <?php if ($dept['is_enabled']): ?>
-                                            <option value="<?php echo esc_attr($dept['dept_slug']); ?>">
-                                                <?php echo esc_html($dept['dept_name']); ?>
-                                            </option>
+                            <label><?php esc_html_e('Department', 'hhmgt'); ?></label>
+                            <div class="hhmgt-multiselect" data-filter="department">
+                                <button type="button" class="hhmgt-multiselect-button">
+                                    <span class="hhmgt-multiselect-label"><?php esc_html_e('All Departments', 'hhmgt'); ?></span>
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </button>
+                                <div class="hhmgt-multiselect-dropdown">
+                                    <div class="hhmgt-multiselect-actions">
+                                        <button type="button" class="hhmgt-multiselect-action" data-action="select-all"><?php esc_html_e('Select All', 'hhmgt'); ?></button>
+                                        <button type="button" class="hhmgt-multiselect-action" data-action="clear-all"><?php esc_html_e('Clear All', 'hhmgt'); ?></button>
+                                    </div>
+                                    <div class="hhmgt-multiselect-options">
+                                        <?php if (!empty($settings['departments'])): ?>
+                                            <?php foreach ($settings['departments'] as $dept): ?>
+                                                <?php if ($dept['is_enabled']): ?>
+                                                    <label class="hhmgt-multiselect-option">
+                                                        <input type="checkbox" value="<?php echo esc_attr($dept['dept_slug']); ?>">
+                                                        <span><?php echo esc_html($dept['dept_name']); ?></span>
+                                                    </label>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
                                         <?php endif; ?>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                            <small class="hhmgt-filter-help"><?php esc_html_e('Hold Ctrl/Cmd to select multiple', 'hhmgt'); ?></small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Status filter -->
                         <div class="hhmgt-filter-group">
-                            <label for="filter-status"><?php esc_html_e('Status', 'hhmgt'); ?></label>
-                            <select id="filter-status" class="hhmgt-filter-select" multiple size="3">
-                                <?php if (!empty($settings['task_states'])): ?>
-                                    <?php foreach ($settings['task_states'] as $state): ?>
-                                        <?php if ($state['is_enabled']): ?>
-                                            <option value="<?php echo esc_attr($state['state_slug']); ?>">
-                                                <?php echo esc_html($state['state_name']); ?>
-                                            </option>
+                            <label><?php esc_html_e('Status', 'hhmgt'); ?></label>
+                            <div class="hhmgt-multiselect" data-filter="status">
+                                <button type="button" class="hhmgt-multiselect-button">
+                                    <span class="hhmgt-multiselect-label"><?php esc_html_e('All Statuses', 'hhmgt'); ?></span>
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </button>
+                                <div class="hhmgt-multiselect-dropdown">
+                                    <div class="hhmgt-multiselect-actions">
+                                                        <button type="button" class="hhmgt-multiselect-action" data-action="select-all"><?php esc_html_e('Select All', 'hhmgt'); ?></button>
+                                        <button type="button" class="hhmgt-multiselect-action" data-action="clear-all"><?php esc_html_e('Clear All', 'hhmgt'); ?></button>
+                                    </div>
+                                    <div class="hhmgt-multiselect-options">
+                                        <?php if (!empty($settings['task_states'])): ?>
+                                            <?php foreach ($settings['task_states'] as $state): ?>
+                                                <?php if ($state['is_enabled']): ?>
+                                                    <label class="hhmgt-multiselect-option">
+                                                        <input type="checkbox" value="<?php echo esc_attr($state['state_slug']); ?>">
+                                                        <span><?php echo esc_html($state['state_name']); ?></span>
+                                                    </label>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
                                         <?php endif; ?>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                            <small class="hhmgt-filter-help"><?php esc_html_e('Hold Ctrl/Cmd to select multiple', 'hhmgt'); ?></small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Location Type filter -->
                         <div class="hhmgt-filter-group">
-                            <label for="filter-location-type"><?php esc_html_e('Location Type', 'hhmgt'); ?></label>
-                            <select id="filter-location-type" class="hhmgt-filter-select" multiple size="3">
-                                <!-- Populated dynamically via AJAX -->
-                            </select>
-                            <small class="hhmgt-filter-help"><?php esc_html_e('Hold Ctrl/Cmd to select multiple', 'hhmgt'); ?></small>
+                            <label><?php esc_html_e('Location Type', 'hhmgt'); ?></label>
+                            <div class="hhmgt-multiselect" data-filter="location_type">
+                                <button type="button" class="hhmgt-multiselect-button">
+                                    <span class="hhmgt-multiselect-label"><?php esc_html_e('All Types', 'hhmgt'); ?></span>
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </button>
+                                <div class="hhmgt-multiselect-dropdown">
+                                    <div class="hhmgt-multiselect-actions">
+                                        <button type="button" class="hhmgt-multiselect-action" data-action="select-all"><?php esc_html_e('Select All', 'hhmgt'); ?></button>
+                                        <button type="button" class="hhmgt-multiselect-action" data-action="clear-all"><?php esc_html_e('Clear All', 'hhmgt'); ?></button>
+                                    </div>
+                                    <div class="hhmgt-multiselect-options">
+                                        <!-- Populated dynamically via AJAX -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Location filter -->
                         <div class="hhmgt-filter-group">
-                            <label for="filter-location"><?php esc_html_e('Location', 'hhmgt'); ?></label>
-                            <select id="filter-location" class="hhmgt-filter-select" multiple size="3">
-                                <!-- Populated dynamically via AJAX based on type -->
-                            </select>
-                            <small class="hhmgt-filter-help"><?php esc_html_e('Hold Ctrl/Cmd to select multiple', 'hhmgt'); ?></small>
+                            <label><?php esc_html_e('Location', 'hhmgt'); ?></label>
+                            <div class="hhmgt-multiselect" data-filter="location">
+                                <button type="button" class="hhmgt-multiselect-button">
+                                    <span class="hhmgt-multiselect-label"><?php esc_html_e('All Locations', 'hhmgt'); ?></span>
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </button>
+                                <div class="hhmgt-multiselect-dropdown">
+                                    <div class="hhmgt-multiselect-actions">
+                                        <button type="button" class="hhmgt-multiselect-action" data-action="select-all"><?php esc_html_e('Select All', 'hhmgt'); ?></button>
+                                        <button type="button" class="hhmgt-multiselect-action" data-action="clear-all"><?php esc_html_e('Clear All', 'hhmgt'); ?></button>
+                                    </div>
+                                    <div class="hhmgt-multiselect-options">
+                                        <!-- Populated dynamically via AJAX based on type -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

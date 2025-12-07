@@ -191,6 +191,130 @@
     margin-top: 2px;
 }
 
+/* Custom Multi-Select */
+.hhmgt-multiselect {
+    position: relative;
+    width: 100%;
+}
+
+.hhmgt-multiselect-button {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--hhmgt-border);
+    border-radius: var(--hhmgt-radius-sm);
+    background: var(--hhmgt-bg-white);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--hhmgt-text-primary);
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.hhmgt-multiselect-button:hover {
+    border-color: var(--hhmgt-primary);
+}
+
+.hhmgt-multiselect-button:focus {
+    outline: none;
+    border-color: var(--hhmgt-primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.hhmgt-multiselect-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hhmgt-multiselect-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--hhmgt-bg-white);
+    border: 1px solid var(--hhmgt-border);
+    border-radius: var(--hhmgt-radius-sm);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+    display: none;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.hhmgt-multiselect.open .hhmgt-multiselect-dropdown {
+    display: block;
+}
+
+.hhmgt-multiselect.open .hhmgt-multiselect-button .material-symbols-outlined {
+    transform: rotate(180deg);
+}
+
+.hhmgt-multiselect-button .material-symbols-outlined {
+    transition: transform 0.2s;
+}
+
+.hhmgt-multiselect-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid var(--hhmgt-border);
+    background: var(--hhmgt-bg-light);
+}
+
+.hhmgt-multiselect-action {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--hhmgt-border);
+    border-radius: var(--hhmgt-radius-sm);
+    background: var(--hhmgt-bg-white);
+    color: var(--hhmgt-text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.hhmgt-multiselect-action:hover {
+    background: var(--hhmgt-bg-light);
+    color: var(--hhmgt-text-primary);
+}
+
+.hhmgt-multiselect-options {
+    padding: 4px;
+}
+
+.hhmgt-multiselect-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: var(--hhmgt-radius-sm);
+    transition: background-color 0.15s;
+    user-select: none;
+}
+
+.hhmgt-multiselect-option:hover {
+    background: var(--hhmgt-bg-light);
+}
+
+.hhmgt-multiselect-option input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.hhmgt-multiselect-option span {
+    flex: 1;
+    font-size: 14px;
+    color: var(--hhmgt-text-primary);
+}
+
 /* ========================================================================
    Buttons
    ======================================================================== */

@@ -87,10 +87,136 @@
             });
         });
 
-        // Location type change triggers location load
-        $('#filter-location-type').on('change', function() {
-            loadLocations($(this).val());
+        // Initialize custom multi-select
+        initMultiSelect();
+    }
+
+    /**
+     * Initialize custom multi-select dropdowns
+     */
+    function initMultiSelect() {
+        // Toggle dropdown on button click
+        $(document).on('click', '.hhmgt-multiselect-button', function(e) {
+            e.stopPropagation();
+            const $multiselect = $(this).closest('.hhmgt-multiselect');
+            const wasOpen = $multiselect.hasClass('open');
+
+            // Close all other dropdowns
+            $('.hhmgt-multiselect').removeClass('open');
+
+            // Toggle this dropdown
+            if (!wasOpen) {
+                $multiselect.addClass('open');
+            }
         });
+
+        // Close dropdown when clicking outside
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.hhmgt-multiselect').length) {
+                $('.hhmgt-multiselect').removeClass('open');
+            }
+        });
+
+        // Prevent dropdown from closing when clicking inside
+        $(document).on('click', '.hhmgt-multiselect-dropdown', function(e) {
+            e.stopPropagation();
+        });
+
+        // Handle checkbox change
+        $(document).on('change', '.hhmgt-multiselect-option input[type="checkbox"]', function() {
+            const $multiselect = $(this).closest('.hhmgt-multiselect');
+            updateMultiSelectLabel($multiselect);
+
+            // Trigger location load when location type changes
+            if ($multiselect.data('filter') === 'location_type') {
+                loadLocations(getMultiSelectValues($multiselect));
+            }
+        });
+
+        // Handle Select All
+        $(document).on('click', '.hhmgt-multiselect-action[data-action="select-all"]', function(e) {
+            e.preventDefault();
+            const $multiselect = $(this).closest('.hhmgt-multiselect');
+            $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]').prop('checked', true);
+            updateMultiSelectLabel($multiselect);
+
+            // Trigger location load when location type changes
+            if ($multiselect.data('filter') === 'location_type') {
+                loadLocations(getMultiSelectValues($multiselect));
+            }
+        });
+
+        // Handle Clear All
+        $(document).on('click', '.hhmgt-multiselect-action[data-action="clear-all"]', function(e) {
+            e.preventDefault();
+            const $multiselect = $(this).closest('.hhmgt-multiselect');
+            $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]').prop('checked', false);
+            updateMultiSelectLabel($multiselect);
+
+            // Trigger location load when location type changes
+            if ($multiselect.data('filter') === 'location_type') {
+                loadLocations(getMultiSelectValues($multiselect));
+            }
+        });
+    }
+
+    /**
+     * Update multi-select label to show selected count
+     */
+    function updateMultiSelectLabel($multiselect) {
+        const filterName = $multiselect.data('filter');
+        const $label = $multiselect.find('.hhmgt-multiselect-label');
+        const checked = $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]:checked');
+        const total = $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]').length;
+
+        let labelText = '';
+
+        if (checked.length === 0) {
+            switch(filterName) {
+                case 'department': labelText = 'All Departments'; break;
+                case 'status': labelText = 'All Statuses'; break;
+                case 'location_type': labelText = 'All Types'; break;
+                case 'location': labelText = 'All Locations'; break;
+            }
+        } else if (checked.length === total) {
+            switch(filterName) {
+                case 'department': labelText = 'All Departments'; break;
+                case 'status': labelText = 'All Statuses'; break;
+                case 'location_type': labelText = 'All Types'; break;
+                case 'location': labelText = 'All Locations'; break;
+            }
+        } else if (checked.length === 1) {
+            labelText = checked.first().next('span').text();
+        } else {
+            labelText = `${checked.length} selected`;
+        }
+
+        $label.text(labelText);
+    }
+
+    /**
+     * Get selected values from multi-select
+     */
+    function getMultiSelectValues($multiselect) {
+        const values = [];
+        $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]:checked').each(function() {
+            values.push($(this).val());
+        });
+        return values;
+    }
+
+    /**
+     * Set selected values for multi-select
+     */
+    function setMultiSelectValues($multiselect, values) {
+        if (!values || values.length === 0) {
+            $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]').prop('checked', false);
+        } else {
+            $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]').each(function() {
+                $(this).prop('checked', values.includes($(this).val()));
+            });
+        }
+        updateMultiSelectLabel($multiselect);
     }
 
     /**
@@ -109,23 +235,27 @@
 
                 // Restore filters (handle both array and single values for backwards compatibility)
                 if (filters.department) {
-                    currentState.filters.department = Array.isArray(filters.department) ? filters.department : [filters.department];
-                    $('#filter-department').val(currentState.filters.department);
+                    const values = Array.isArray(filters.department) ? filters.department : [filters.department];
+                    currentState.filters.department = values;
+                    setMultiSelectValues($('.hhmgt-multiselect[data-filter="department"]'), values);
                 }
 
                 if (filters.status) {
-                    currentState.filters.status = Array.isArray(filters.status) ? filters.status : [filters.status];
-                    $('#filter-status').val(currentState.filters.status);
+                    const values = Array.isArray(filters.status) ? filters.status : [filters.status];
+                    currentState.filters.status = values;
+                    setMultiSelectValues($('.hhmgt-multiselect[data-filter="status"]'), values);
                 }
 
                 if (filters.location_type) {
-                    currentState.filters.location_type = Array.isArray(filters.location_type) ? filters.location_type : [filters.location_type];
-                    $('#filter-location-type').val(currentState.filters.location_type);
+                    const values = Array.isArray(filters.location_type) ? filters.location_type : [filters.location_type];
+                    currentState.filters.location_type = values;
+                    // Will be set after location types are loaded
                 }
 
                 if (filters.location) {
-                    currentState.filters.location = Array.isArray(filters.location) ? filters.location : [filters.location];
-                    // Location will be loaded after types are populated
+                    const values = Array.isArray(filters.location) ? filters.location : [filters.location];
+                    currentState.filters.location = values;
+                    // Will be set after locations are loaded
                 }
 
                 if (filters.group_by) {
@@ -249,10 +379,10 @@
     function applyFilters() {
         currentState.filters = {
             include_future: $('#filter-include-future').is(':checked'),
-            department: $('#filter-department').val() || [], // Multi-select returns array or null
-            status: $('#filter-status').val() || [], // Multi-select returns array or null
-            location_type: $('#filter-location-type').val() || [], // Multi-select returns array or null
-            location: $('#filter-location').val() || [], // Multi-select returns array or null
+            department: getMultiSelectValues($('.hhmgt-multiselect[data-filter="department"]')),
+            status: getMultiSelectValues($('.hhmgt-multiselect[data-filter="status"]')),
+            location_type: getMultiSelectValues($('.hhmgt-multiselect[data-filter="location_type"]')),
+            location: getMultiSelectValues($('.hhmgt-multiselect[data-filter="location"]')),
             show_completed: $('#filter-show-completed').is(':checked'),
             search: $('#filter-search').val(),
             group_by: $('#filter-group-by').val()
@@ -284,21 +414,30 @@
                 debugLog('Location types response:', response);
 
                 if (response.success && response.data.types) {
-                    const $select = $('#filter-location-type');
+                    const $multiselect = $('.hhmgt-multiselect[data-filter="location_type"]');
+                    const $options = $multiselect.find('.hhmgt-multiselect-options');
 
                     if (response.data.types.length === 0) {
                         debugLog('Warning: No location types found');
-                        // Show helpful message
-                        $select.after('<small style="color: #dc2626; display: block; margin-top: 4px;">No location types configured. Please add locations in admin settings.</small>');
+                        $options.html('<p style="padding: 8px; color: #dc2626; font-size: 12px;">No location types configured</p>');
                     } else {
+                        // Clear existing options
+                        $options.empty();
+
+                        // Add checkboxes for each type
                         response.data.types.forEach(function(type) {
-                            $select.append(`<option value="${type}">${type}</option>`);
+                            $options.append(`
+                                <label class="hhmgt-multiselect-option">
+                                    <input type="checkbox" value="${type}">
+                                    <span>${type}</span>
+                                </label>
+                            `);
                         });
                         debugLog('Location types loaded:', response.data.types.length);
 
                         // Restore saved location type after options are added
-                        if (currentState.filters.location_type) {
-                            $select.val(currentState.filters.location_type);
+                        if (currentState.filters.location_type && currentState.filters.location_type.length > 0) {
+                            setMultiSelectValues($multiselect, currentState.filters.location_type);
                             loadLocations(currentState.filters.location_type);
                         }
                     }
@@ -317,14 +456,16 @@
      * Load locations by type
      */
     function loadLocations(locationTypes) {
-        const $select = $('#filter-location');
-        $select.find('option').remove();
+        const $multiselect = $('.hhmgt-multiselect[data-filter="location"]');
+        const $options = $multiselect.find('.hhmgt-multiselect-options');
 
         // Convert to array if single value (for backwards compatibility)
         const types = Array.isArray(locationTypes) ? locationTypes : (locationTypes ? [locationTypes] : []);
 
         if (types.length === 0) {
-            debugLog('No location type selected, skipping location load');
+            debugLog('No location type selected, showing all locations');
+            // Clear options and show message
+            $options.html('<p style="padding: 8px; color: #6b7280; font-size: 12px;">Select location type(s) first</p>');
             return;
         }
 
@@ -345,16 +486,25 @@
                 if (response.success && response.data.locations) {
                     if (response.data.locations.length === 0) {
                         debugLog('Warning: No locations found for types:', types);
-                        $select.after('<small style="color: #dc2626; display: block; margin-top: 4px;">No locations found for selected types.</small>');
+                        $options.html('<p style="padding: 8px; color: #dc2626; font-size: 12px;">No locations found for selected types</p>');
                     } else {
+                        // Clear existing options
+                        $options.empty();
+
+                        // Add checkboxes for each location
                         response.data.locations.forEach(function(loc) {
-                            $select.append(`<option value="${loc.id}">${loc.full_path || loc.location_name}</option>`);
+                            $options.append(`
+                                <label class="hhmgt-multiselect-option">
+                                    <input type="checkbox" value="${loc.id}">
+                                    <span>${loc.full_path || loc.location_name}</span>
+                                </label>
+                            `);
                         });
                         debugLog('Locations loaded:', response.data.locations.length);
 
                         // Restore saved locations after options are added
-                        if (currentState.filters.location && Array.isArray(currentState.filters.location)) {
-                            $select.val(currentState.filters.location);
+                        if (currentState.filters.location && currentState.filters.location.length > 0) {
+                            setMultiSelectValues($multiselect, currentState.filters.location);
                         }
                     }
                 } else {
