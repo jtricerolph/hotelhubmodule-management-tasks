@@ -336,7 +336,14 @@
         // Close modals
         $(document).on('click', '.hhmgt-modal-overlay, .hhmgt-modal-close', function(e) {
             if ($(e.target).hasClass('hhmgt-modal-overlay') || $(e.target).closest('.hhmgt-modal-close').length) {
-                closeModals();
+                // Only close the specific modal that was clicked, not all modals
+                const $modal = $(this).closest('.hhmgt-modal');
+                $modal.fadeOut(200);
+
+                // Only clear currentTask if closing the main task modal
+                if ($modal.attr('id') === 'task-modal') {
+                    currentState.currentTask = null;
+                }
             }
         });
 
@@ -775,7 +782,7 @@
             actionButtonsHTML = `
                 <div class="hhmgt-modal-section">
                     <div class="hhmgt-action-buttons">
-                        <button type="button" id="update-status-btn" class="hhmgt-btn hhmgt-btn-secondary" ${isCurrentlyComplete ? 'disabled' : ''}>
+                        <button type="button" id="update-status-btn" class="hhmgt-btn hhmgt-btn-secondary">
                             <span class="material-symbols-outlined">edit</span>
                             Update Status
                         </button>
