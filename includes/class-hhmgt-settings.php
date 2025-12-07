@@ -350,10 +350,11 @@ class HHMGT_Settings {
                     'color_hex' => $state['color_hex'],
                     'is_default' => isset($state['is_default']) && $state['is_default'] ? 1 : 0,
                     'is_complete_state' => isset($state['is_complete_state']) && $state['is_complete_state'] ? 1 : 0,
+                    'checklist_started_state' => isset($state['checklist_started_state']) && $state['checklist_started_state'] ? 1 : 0,
                     'is_enabled' => $state['is_enabled'] ? 1 : 0,
                     'sort_order' => $state['sort_order']
                 ),
-                array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d')
+                array('%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d')
             );
         }
     }
@@ -416,6 +417,7 @@ class HHMGT_Settings {
                     'color_hex' => sanitize_hex_color($state_data['color_hex']),
                     'is_default' => isset($state_data['is_default']) ? true : false,
                     'is_complete_state' => isset($state_data['is_complete_state']) ? true : false,
+                    'checklist_started_state' => isset($state_data['checklist_started_state']) ? true : false,
                     'is_enabled' => isset($state_data['is_enabled']) ? true : false,
                     'sort_order' => intval($state_data['sort_order'] ?? 0)
                 );

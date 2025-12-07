@@ -253,6 +253,7 @@ class HotelHub_Management_Tasks {
             color_hex VARCHAR(7) DEFAULT '#6b7280',
             is_default BOOLEAN DEFAULT FALSE COMMENT 'Default states: Pending, Due, Overdue, Complete',
             is_complete_state BOOLEAN DEFAULT FALSE COMMENT 'Marks task as completed',
+            checklist_started_state BOOLEAN DEFAULT FALSE COMMENT 'Auto-update to this state when checklist started',
             sort_order INT(11) DEFAULT 0,
             is_enabled BOOLEAN DEFAULT TRUE,
             PRIMARY KEY (id),
