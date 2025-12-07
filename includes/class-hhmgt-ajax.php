@@ -294,6 +294,8 @@ class HHMGT_Ajax {
         // Process notes
         foreach ($notes as &$note) {
             $note->note_photos = json_decode($note->note_photos, true) ?: array();
+            // Convert carry_forward to actual boolean for JavaScript
+            $note->carry_forward = (bool) $note->carry_forward;
         }
 
         // Get available states for the location
