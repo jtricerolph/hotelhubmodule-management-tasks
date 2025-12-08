@@ -401,8 +401,9 @@
 }
 
 .hhmgt-completion-photo-thumb {
-    width: 120px;
-    height: 120px;
+    position: relative;
+    width: 90px;
+    height: 90px;
     border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
@@ -420,6 +421,38 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.hhmgt-completion-photo-delete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.9);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 1;
+}
+
+.hhmgt-completion-photo-thumb:hover .hhmgt-completion-photo-delete {
+    opacity: 1;
+}
+
+.hhmgt-completion-photo-delete .material-symbols-outlined {
+    font-size: 14px;
+}
+
+.hhmgt-completion-photo-delete:hover {
+    background: #dc2626;
 }
 
 /* ========================================================================

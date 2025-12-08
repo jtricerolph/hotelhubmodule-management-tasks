@@ -38,6 +38,7 @@ class HHMGT_Ajax {
         add_action('wp_ajax_hhmgt_update_note_carry_forward', array($this, 'update_note_carry_forward'));
         add_action('wp_ajax_hhmgt_complete_task', array($this, 'complete_task'));
         add_action('wp_ajax_hhmgt_upload_completion_photos', array($this, 'upload_completion_photos'));
+        add_action('wp_ajax_hhmgt_delete_completion_photo', array($this, 'delete_completion_photo'));
         add_action('wp_ajax_hhmgt_get_location_types', array($this, 'get_location_types'));
         add_action('wp_ajax_hhmgt_get_locations', array($this, 'get_locations'));
     }
@@ -717,6 +718,75 @@ class HHMGT_Ajax {
         wp_send_json_success(array(
             'message' => __('Photos uploaded successfully', 'hhmgt'),
             'photo_ids' => $photo_ids
+        ));
+    }
+
+    /**
+     * Delete completion photo (AJAX handler)
+     */
+    public function delete_completion_photo() {
+        global $wpdb;
+
+        check_ajax_referer('hhmgt_ajax_nonce', 'nonce');
+
+        if (!$this->user_can_access()) {
+            wp_send_json_error(__('Permission denied', 'hhmgt'));
+        }
+
+        $instance_id = isset($_POST['instance_id']) ? intval($_POST['instance_id']) : 0;
+        $photo_id = isset($_POST['photo_id']) ? intval($_POST['photo_id']) : 0;
+
+        if (!$instance_id || !$photo_id) {
+            wp_send_json_error(__('Invalid parameters', 'hhmgt'));
+        }
+
+        // Get the instance to check if it's complete
+        $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
+        $table_states = $wpdb->prefix . 'hhmgt_task_states';
+
+        $instance = $wpdb->get_row($wpdb->prepare(
+            "SELECT i.*, s.is_complete_state
+            FROM {$table_instances} i
+            LEFT JOIN {$table_states} s ON i.status_id = s.id
+            WHERE i.id = %d",
+            $instance_id
+        ));
+
+        if (!$instance) {
+            wp_send_json_error(__('Task not found', 'hhmgt'));
+        }
+
+        // Don't allow deletion if task is complete
+        if ($instance->is_complete_state) {
+            wp_send_json_error(__('Cannot delete photos from completed tasks', 'hhmgt'));
+        }
+
+        // Get current photos
+        $current_photos = json_decode($instance->completion_photos, true) ?: array();
+
+        // Remove the photo ID from the array
+        $new_photos = array_values(array_filter($current_photos, function($id) use ($photo_id) {
+            return $id != $photo_id;
+        }));
+
+        // Update the instance
+        $updated = $wpdb->update(
+            $table_instances,
+            array('completion_photos' => json_encode($new_photos)),
+            array('id' => $instance_id),
+            array('%s'),
+            array('%d')
+        );
+
+        if ($updated === false) {
+            wp_send_json_error(__('Failed to update task', 'hhmgt'));
+        }
+
+        // Optionally delete the attachment from media library
+        wp_delete_attachment($photo_id, true);
+
+        wp_send_json_success(array(
+            'message' => __('Photo deleted successfully', 'hhmgt')
         ));
     }
 

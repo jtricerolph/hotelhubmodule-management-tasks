@@ -431,8 +431,13 @@
             uploadPhotosAndComplete();
         });
 
-        // Lightbox - open on thumbnail click
-        $(document).on('click', '.hhmgt-completion-photo-thumb', function() {
+        // Lightbox - open on thumbnail click (but not on delete button)
+        $(document).on('click', '.hhmgt-completion-photo-thumb', function(e) {
+            // Don't open lightbox if clicking delete button
+            if ($(e.target).closest('.hhmgt-completion-photo-delete').length) {
+                return;
+            }
+
             const $thumbs = $('.hhmgt-completion-photo-thumb');
             const photos = [];
             $thumbs.each(function() {
@@ -440,6 +445,49 @@
             });
             const index = $thumbs.index(this);
             openLightbox(photos, index);
+        });
+
+        // Delete completion photo
+        $(document).on('click', '.hhmgt-completion-photo-delete', function(e) {
+            e.stopPropagation();
+
+            if (!currentState.currentTask) return;
+
+            const photoId = $(this).data('photo-id');
+            const $thumb = $(this).closest('.hhmgt-completion-photo-thumb');
+
+            if (!confirm('Delete this photo?')) {
+                return;
+            }
+
+            $.ajax({
+                url: hhmgtData.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'hhmgt_delete_completion_photo',
+                    nonce: hhmgtData.nonce,
+                    instance_id: currentState.currentTask.instance.id,
+                    photo_id: photoId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Remove the thumbnail with animation
+                        $thumb.fadeOut(200, function() {
+                            $(this).remove();
+                            // If no more photos, remove the section
+                            if ($('.hhmgt-completion-photo-thumb').length === 0) {
+                                $('.hhmgt-completion-photos-grid').closest('.hhmgt-modal-section').remove();
+                            }
+                        });
+                        showToast(response.data.message, 'success');
+                    } else {
+                        showError(response.data);
+                    }
+                },
+                error: function() {
+                    showError(hhmgtData.strings.error);
+                }
+            });
         });
 
         // Lightbox - close
@@ -844,12 +892,16 @@
             checklistHTML += '</div></div>';
         }
 
+        // Check if current status is a complete state (used for multiple sections)
+        let isCurrentlyComplete = false;
+        if (states.length > 0) {
+            const currentStatus = states.find(state => state.id == instance.status_id);
+            isCurrentlyComplete = currentStatus && (currentStatus.is_complete_state == 1 || currentStatus.is_complete_state === true);
+        }
+
         // Build action buttons HTML (with compact reminder above if present)
         let actionButtonsHTML = '';
         if (states.length > 0) {
-            // Check if current status is a complete state
-            const currentStatus = states.find(state => state.id == instance.status_id);
-            const isCurrentlyComplete = currentStatus && (currentStatus.is_complete_state == 1 || currentStatus.is_complete_state === true);
 
             // Compact completion reminder (shown above buttons if not complete)
             let compactReminderHTML = '';
@@ -879,14 +931,21 @@
             `;
         }
 
-        // Build completion photos HTML (for completed tasks)
+        // Build completion photos HTML
         let completionPhotosHTML = '';
         if (instance.completion_photos && instance.completion_photos.length > 0) {
             let photosGridHTML = '';
             instance.completion_photos.forEach(function(photo) {
+                const deleteBtn = !isCurrentlyComplete ? `
+                    <button type="button" class="hhmgt-completion-photo-delete" data-photo-id="${photo.id}" title="Delete photo">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                ` : '';
+
                 photosGridHTML += `
-                    <div class="hhmgt-completion-photo-thumb" data-full-url="${photo.full_url}">
+                    <div class="hhmgt-completion-photo-thumb" data-full-url="${photo.full_url}" data-photo-id="${photo.id}">
                         <img src="${photo.thumb_url}" alt="Completion photo">
+                        ${deleteBtn}
                     </div>
                 `;
             });
