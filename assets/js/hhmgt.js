@@ -430,6 +430,53 @@
         $(document).on('click', '#submit-completion-btn', function() {
             uploadPhotosAndComplete();
         });
+
+        // Lightbox - open on thumbnail click
+        $(document).on('click', '.hhmgt-completion-photo-thumb', function() {
+            const $thumbs = $('.hhmgt-completion-photo-thumb');
+            const photos = [];
+            $thumbs.each(function() {
+                photos.push($(this).data('full-url'));
+            });
+            const index = $thumbs.index(this);
+            openLightbox(photos, index);
+        });
+
+        // Lightbox - close
+        $(document).on('click', '.hhmgt-lightbox-close, #hhmgt-lightbox', function(e) {
+            if (e.target === this || $(e.target).closest('.hhmgt-lightbox-close').length) {
+                closeLightbox();
+            }
+        });
+
+        // Lightbox - prevent close when clicking on content
+        $(document).on('click', '.hhmgt-lightbox-content', function(e) {
+            e.stopPropagation();
+        });
+
+        // Lightbox - navigation
+        $(document).on('click', '.hhmgt-lightbox-nav.prev', function(e) {
+            e.stopPropagation();
+            lightboxNavigate(-1);
+        });
+
+        $(document).on('click', '.hhmgt-lightbox-nav.next', function(e) {
+            e.stopPropagation();
+            lightboxNavigate(1);
+        });
+
+        // Lightbox - keyboard navigation
+        $(document).on('keydown', function(e) {
+            if (!$('#hhmgt-lightbox').hasClass('active')) return;
+
+            if (e.key === 'Escape') {
+                closeLightbox();
+            } else if (e.key === 'ArrowLeft') {
+                lightboxNavigate(-1);
+            } else if (e.key === 'ArrowRight') {
+                lightboxNavigate(1);
+            }
+        });
     }
 
     /**
@@ -832,6 +879,28 @@
             `;
         }
 
+        // Build completion photos HTML (for completed tasks)
+        let completionPhotosHTML = '';
+        if (instance.completion_photos && instance.completion_photos.length > 0) {
+            let photosGridHTML = '';
+            instance.completion_photos.forEach(function(photo) {
+                photosGridHTML += `
+                    <div class="hhmgt-completion-photo-thumb" data-full-url="${photo.full_url}">
+                        <img src="${photo.thumb_url}" alt="Completion photo">
+                    </div>
+                `;
+            });
+
+            completionPhotosHTML = `
+                <div class="hhmgt-modal-section">
+                    <h4 class="hhmgt-modal-section-title">Completion Photos</h4>
+                    <div class="hhmgt-completion-photos-grid">
+                        ${photosGridHTML}
+                    </div>
+                </div>
+            `;
+        }
+
         // Build notes HTML
         let notesHTML = '<div class="hhmgt-modal-section"><h4 class="hhmgt-modal-section-title">Notes</h4><div class="hhmgt-notes-list">';
 
@@ -898,6 +967,7 @@
                 ${checklistHTML}
                 ${notesHTML}
                 ${addNoteHTML}
+                ${completionPhotosHTML}
                 ${actionButtonsHTML}
             </div>
         `;
@@ -1328,6 +1398,75 @@
             };
             reader.readAsDataURL(file);
         });
+    }
+
+    /**
+     * Lightbox state
+     */
+    let lightboxState = {
+        photos: [],
+        currentIndex: 0
+    };
+
+    /**
+     * Open lightbox
+     */
+    function openLightbox(photos, index) {
+        lightboxState.photos = photos;
+        lightboxState.currentIndex = index;
+
+        const $lightbox = $('#hhmgt-lightbox');
+        updateLightboxImage();
+        $lightbox.addClass('active');
+
+        // Hide nav buttons if only one photo
+        if (photos.length <= 1) {
+            $lightbox.find('.hhmgt-lightbox-nav').hide();
+            $lightbox.find('.hhmgt-lightbox-counter').hide();
+        } else {
+            $lightbox.find('.hhmgt-lightbox-nav').show();
+            $lightbox.find('.hhmgt-lightbox-counter').show();
+        }
+    }
+
+    /**
+     * Close lightbox
+     */
+    function closeLightbox() {
+        $('#hhmgt-lightbox').removeClass('active');
+        lightboxState.photos = [];
+        lightboxState.currentIndex = 0;
+    }
+
+    /**
+     * Navigate lightbox
+     */
+    function lightboxNavigate(direction) {
+        if (lightboxState.photos.length <= 1) return;
+
+        lightboxState.currentIndex += direction;
+
+        // Wrap around
+        if (lightboxState.currentIndex < 0) {
+            lightboxState.currentIndex = lightboxState.photos.length - 1;
+        } else if (lightboxState.currentIndex >= lightboxState.photos.length) {
+            lightboxState.currentIndex = 0;
+        }
+
+        updateLightboxImage();
+    }
+
+    /**
+     * Update lightbox image
+     */
+    function updateLightboxImage() {
+        const $lightbox = $('#hhmgt-lightbox');
+        const photo = lightboxState.photos[lightboxState.currentIndex];
+
+        $lightbox.find('.hhmgt-lightbox-image').attr('src', photo);
+        $lightbox.find('.hhmgt-lightbox-counter').text(
+            `${lightboxState.currentIndex + 1} / ${lightboxState.photos.length}`
+        );
     }
 
     /**

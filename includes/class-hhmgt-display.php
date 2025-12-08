@@ -263,6 +263,23 @@ class HHMGT_Display {
                     <!-- Status selection loaded dynamically -->
                 </div>
             </div>
+
+            <!-- Lightbox for viewing photos -->
+            <div id="hhmgt-lightbox" class="hhmgt-lightbox">
+                <div class="hhmgt-lightbox-content">
+                    <button type="button" class="hhmgt-lightbox-close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                    <button type="button" class="hhmgt-lightbox-nav prev">
+                        <span class="material-symbols-outlined">chevron_left</span>
+                    </button>
+                    <img src="" alt="Photo" class="hhmgt-lightbox-image">
+                    <button type="button" class="hhmgt-lightbox-nav next">
+                        <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
+                    <div class="hhmgt-lightbox-counter"></div>
+                </div>
+            </div>
         </div>
         <?php
     }

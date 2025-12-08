@@ -288,9 +288,23 @@ class HHMGT_Ajax {
 
         // Decode JSON fields
         $instance->reference_photos = json_decode($instance->reference_photos, true) ?: array();
-        $instance->completion_photos = json_decode($instance->completion_photos, true) ?: array();
         $instance->checklist_items = json_decode($instance->checklist_items, true) ?: array();
         $instance->checklist_state = json_decode($instance->checklist_state, true) ?: array();
+
+        // Get completion photos with URLs
+        $completion_photo_ids = json_decode($instance->completion_photos, true) ?: array();
+        $instance->completion_photos = array();
+        foreach ($completion_photo_ids as $photo_id) {
+            $thumb_url = wp_get_attachment_image_url($photo_id, 'medium');
+            $full_url = wp_get_attachment_image_url($photo_id, 'full');
+            if ($thumb_url && $full_url) {
+                $instance->completion_photos[] = array(
+                    'id' => $photo_id,
+                    'thumb_url' => $thumb_url,
+                    'full_url' => $full_url
+                );
+            }
+        }
 
         // Process notes
         foreach ($notes as &$note) {
