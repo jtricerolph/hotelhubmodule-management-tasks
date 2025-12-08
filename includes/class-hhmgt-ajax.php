@@ -37,6 +37,7 @@ class HHMGT_Ajax {
         add_action('wp_ajax_hhmgt_add_note', array($this, 'add_note'));
         add_action('wp_ajax_hhmgt_update_note_carry_forward', array($this, 'update_note_carry_forward'));
         add_action('wp_ajax_hhmgt_complete_task', array($this, 'complete_task'));
+        add_action('wp_ajax_hhmgt_upload_completion_photos', array($this, 'upload_completion_photos'));
         add_action('wp_ajax_hhmgt_get_location_types', array($this, 'get_location_types'));
         add_action('wp_ajax_hhmgt_get_locations', array($this, 'get_locations'));
     }
@@ -618,6 +619,90 @@ class HHMGT_Ajax {
 
         wp_send_json_success(array(
             'message' => __('Task completed successfully', 'hhmgt')
+        ));
+    }
+
+    /**
+     * Upload completion photos (AJAX handler)
+     */
+    public function upload_completion_photos() {
+        check_ajax_referer('hhmgt_ajax_nonce', 'nonce');
+
+        if (!$this->user_can_access()) {
+            wp_send_json_error(__('Permission denied', 'hhmgt'));
+        }
+
+        $instance_id = isset($_POST['instance_id']) ? intval($_POST['instance_id']) : 0;
+
+        if (!$instance_id) {
+            wp_send_json_error(__('Invalid task instance', 'hhmgt'));
+        }
+
+        if (empty($_FILES['photos'])) {
+            wp_send_json_error(__('No photos uploaded', 'hhmgt'));
+        }
+
+        // Include WordPress media functions
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+
+        $photo_ids = array();
+        $files = $_FILES['photos'];
+
+        // Handle multiple file uploads
+        $file_count = is_array($files['name']) ? count($files['name']) : 1;
+
+        for ($i = 0; $i < $file_count; $i++) {
+            // Restructure files array for wp_handle_upload
+            $file = array(
+                'name'     => is_array($files['name']) ? $files['name'][$i] : $files['name'],
+                'type'     => is_array($files['type']) ? $files['type'][$i] : $files['type'],
+                'tmp_name' => is_array($files['tmp_name']) ? $files['tmp_name'][$i] : $files['tmp_name'],
+                'error'    => is_array($files['error']) ? $files['error'][$i] : $files['error'],
+                'size'     => is_array($files['size']) ? $files['size'][$i] : $files['size'],
+            );
+
+            // Skip if file has error
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            // Validate file type
+            $allowed_types = array('image/jpeg', 'image/png', 'image/gif', 'image/webp');
+            if (!in_array($file['type'], $allowed_types)) {
+                continue;
+            }
+
+            // Set up file array for sideload
+            $_FILES['hhmgt_completion_photo'] = $file;
+
+            // Upload the file
+            $attachment_id = media_handle_sideload(
+                array(
+                    'name'     => $file['name'],
+                    'tmp_name' => $file['tmp_name'],
+                ),
+                0, // No parent post
+                sprintf(__('Completion photo for task instance %d', 'hhmgt'), $instance_id)
+            );
+
+            if (!is_wp_error($attachment_id)) {
+                $photo_ids[] = $attachment_id;
+
+                // Add meta to link photo to task instance
+                update_post_meta($attachment_id, '_hhmgt_task_instance_id', $instance_id);
+                update_post_meta($attachment_id, '_hhmgt_completion_photo', true);
+            }
+        }
+
+        if (empty($photo_ids)) {
+            wp_send_json_error(__('Failed to upload photos', 'hhmgt'));
+        }
+
+        wp_send_json_success(array(
+            'message' => __('Photos uploaded successfully', 'hhmgt'),
+            'photo_ids' => $photo_ids
         ));
     }
 

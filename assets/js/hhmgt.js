@@ -380,14 +380,55 @@
             updateNoteCarryForward(noteId, carryForward);
         });
 
-        // Complete task
-        $(document).on('click', '#confirm-complete-btn', function() {
-            completeTask();
+        // Reminder modal - cancel
+        $(document).on('click', '#cancel-reminder-btn', function() {
+            closeCompletionModal();
         });
 
-        // Cancel completion
-        $(document).on('click', '#cancel-complete-btn', function() {
+        // Reminder modal - confirm
+        $(document).on('click', '#confirm-reminder-btn', function() {
+            const requiresPhoto = $(this).data('requires-photo') === true || $(this).data('requires-photo') === 'true';
+            if (requiresPhoto) {
+                showPhotoUploadModal();
+            } else {
+                completeTask([]);
+            }
+        });
+
+        // Photo modal - cancel
+        $(document).on('click', '#cancel-photo-btn', function() {
             closeCompletionModal();
+        });
+
+        // Photo modal - select photos button
+        $(document).on('click', '#select-photos-btn', function() {
+            $('#completion-photo-input').click();
+        });
+
+        // Photo modal - file input change
+        $(document).on('change', '#completion-photo-input', function() {
+            const files = Array.from(this.files);
+            if (files.length > 0) {
+                currentState.completionPhotos = currentState.completionPhotos.concat(files);
+                updatePhotoPreview();
+                $('#photo-error').hide();
+                $('#submit-completion-btn').prop('disabled', false);
+            }
+        });
+
+        // Photo modal - remove photo
+        $(document).on('click', '.hhmgt-photo-remove', function() {
+            const index = $(this).data('index');
+            currentState.completionPhotos.splice(index, 1);
+            updatePhotoPreview();
+            if (currentState.completionPhotos.length === 0) {
+                $('#submit-completion-btn').prop('disabled', true);
+            }
+        });
+
+        // Photo modal - submit
+        $(document).on('click', '#submit-completion-btn', function() {
+            uploadPhotosAndComplete();
         });
     }
 
@@ -756,31 +797,27 @@
             checklistHTML += '</div></div>';
         }
 
-        // Build completion reminder HTML
-        let reminderHTML = '';
-        if (instance.completion_reminder_text) {
-            reminderHTML = `
-                <div class="hhmgt-modal-section">
-                    <div class="hhmgt-completion-reminder">
-                        <div class="hhmgt-completion-reminder-icon">
-                            <span class="material-symbols-outlined">warning</span>
-                            <span>Important Reminder</span>
-                        </div>
-                        <div class="hhmgt-completion-reminder-text">${escapeHtml(instance.completion_reminder_text)}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Build action buttons HTML
+        // Build action buttons HTML (with compact reminder above if present)
         let actionButtonsHTML = '';
         if (states.length > 0) {
             // Check if current status is a complete state
             const currentStatus = states.find(state => state.id == instance.status_id);
             const isCurrentlyComplete = currentStatus && (currentStatus.is_complete_state == 1 || currentStatus.is_complete_state === true);
 
+            // Compact completion reminder (shown above buttons if not complete)
+            let compactReminderHTML = '';
+            if (instance.completion_reminder_text && !isCurrentlyComplete) {
+                compactReminderHTML = `
+                    <div class="hhmgt-completion-reminder-compact">
+                        <span class="material-symbols-outlined">info</span>
+                        <span>${escapeHtml(instance.completion_reminder_text)}</span>
+                    </div>
+                `;
+            }
+
             actionButtonsHTML = `
-                <div class="hhmgt-modal-section">
+                <div class="hhmgt-modal-section hhmgt-actions-section">
+                    ${compactReminderHTML}
                     <div class="hhmgt-action-buttons">
                         <button type="button" id="update-status-btn" class="hhmgt-btn hhmgt-btn-secondary">
                             <span class="material-symbols-outlined">edit</span>
@@ -859,7 +896,6 @@
                     </div>
                 ` : ''}
                 ${checklistHTML}
-                ${reminderHTML}
                 ${notesHTML}
                 ${addNoteHTML}
                 ${actionButtonsHTML}
@@ -1080,17 +1116,104 @@
     }
 
     /**
-     * Open completion modal
+     * Open completion flow - handles reminder and photo requirements
      */
     function openCompletionModal() {
         if (!currentState.currentTask) return;
 
         const instance = currentState.currentTask.instance;
+        const hasReminder = instance.completion_reminder_text && instance.completion_reminder_text.trim() !== '';
+        const requiresPhoto = instance.require_completion_photo == 1 || instance.require_completion_photo === true;
 
-        // Simple confirmation for now
-        if (confirm('Mark this task as complete?')) {
-            completeTask();
+        if (hasReminder) {
+            // Show reminder confirmation modal first
+            showReminderModal(instance.completion_reminder_text, requiresPhoto);
+        } else if (requiresPhoto) {
+            // No reminder, but photo required
+            showPhotoUploadModal();
+        } else {
+            // No reminder or photo required - complete directly
+            completeTask([]);
         }
+    }
+
+    /**
+     * Show reminder confirmation modal
+     */
+    function showReminderModal(reminderText, requiresPhoto) {
+        const $modal = $('#completion-modal');
+        const $content = $modal.find('.hhmgt-modal-content');
+
+        const modalHTML = `
+            <div class="hhmgt-modal-header">
+                <h3 class="hhmgt-modal-title">Completion Reminder</h3>
+                <button type="button" class="hhmgt-modal-close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="hhmgt-modal-body">
+                <div class="hhmgt-reminder-modal-content">
+                    <div class="hhmgt-reminder-modal-icon">
+                        <span class="material-symbols-outlined">warning</span>
+                    </div>
+                    <p class="hhmgt-reminder-modal-text">${escapeHtml(reminderText)}</p>
+                </div>
+                <div class="hhmgt-modal-actions">
+                    <button type="button" id="cancel-reminder-btn" class="hhmgt-btn hhmgt-btn-secondary">Cancel</button>
+                    <button type="button" id="confirm-reminder-btn" class="hhmgt-btn hhmgt-btn-primary" data-requires-photo="${requiresPhoto}">
+                        <span class="material-symbols-outlined">check</span>
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        `;
+
+        $content.html(modalHTML);
+        $modal.fadeIn(200);
+    }
+
+    /**
+     * Show photo upload modal
+     */
+    function showPhotoUploadModal() {
+        const $modal = $('#completion-modal');
+        const $content = $modal.find('.hhmgt-modal-content');
+
+        const modalHTML = `
+            <div class="hhmgt-modal-header">
+                <h3 class="hhmgt-modal-title">Completion Photo</h3>
+                <button type="button" class="hhmgt-modal-close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="hhmgt-modal-body">
+                <div class="hhmgt-photo-upload-content">
+                    <p class="hhmgt-photo-upload-info">Please upload at least one photo to complete this task.</p>
+                    <div class="hhmgt-photo-upload-area">
+                        <input type="file" id="completion-photo-input" accept="image/*" capture="environment" multiple style="display: none;">
+                        <button type="button" id="select-photos-btn" class="hhmgt-btn hhmgt-btn-secondary hhmgt-btn-full">
+                            <span class="material-symbols-outlined">add_a_photo</span>
+                            Select Photos
+                        </button>
+                    </div>
+                    <div id="photo-preview-container" class="hhmgt-photo-previews"></div>
+                    <p id="photo-error" class="hhmgt-photo-error" style="display: none;">At least one photo is required.</p>
+                </div>
+                <div class="hhmgt-modal-actions">
+                    <button type="button" id="cancel-photo-btn" class="hhmgt-btn hhmgt-btn-secondary">Cancel</button>
+                    <button type="button" id="submit-completion-btn" class="hhmgt-btn hhmgt-btn-primary" disabled>
+                        <span class="material-symbols-outlined">check_circle</span>
+                        Complete Task
+                    </button>
+                </div>
+            </div>
+        `;
+
+        $content.html(modalHTML);
+        $modal.fadeIn(200);
+
+        // Store selected files
+        currentState.completionPhotos = [];
     }
 
     /**
@@ -1098,13 +1221,17 @@
      */
     function closeCompletionModal() {
         $('#completion-modal').fadeOut(200);
+        currentState.completionPhotos = [];
     }
 
     /**
-     * Complete task
+     * Complete task with optional photos
      */
-    function completeTask() {
+    function completeTask(photoIds) {
         if (!currentState.currentTask) return;
+
+        const $btn = $('#submit-completion-btn, #confirm-reminder-btn');
+        $btn.prop('disabled', true).html('<span class="material-symbols-outlined rotating">sync</span> Completing...');
 
         $.ajax({
             url: hhmgtData.ajax_url,
@@ -1113,7 +1240,7 @@
                 action: 'hhmgt_complete_task',
                 nonce: hhmgtData.nonce,
                 instance_id: currentState.currentTask.instance.id,
-                completion_photos: []
+                completion_photos: photoIds || []
             },
             success: function(response) {
                 if (response.success) {
@@ -1122,11 +1249,84 @@
                     loadTasks();
                 } else {
                     showError(response.data);
+                    $btn.prop('disabled', false).html('<span class="material-symbols-outlined">check_circle</span> Complete Task');
                 }
             },
             error: function() {
                 showError(hhmgtData.strings.error);
+                $btn.prop('disabled', false).html('<span class="material-symbols-outlined">check_circle</span> Complete Task');
             }
+        });
+    }
+
+    /**
+     * Upload completion photos and complete task
+     */
+    function uploadPhotosAndComplete() {
+        if (!currentState.completionPhotos || currentState.completionPhotos.length === 0) {
+            $('#photo-error').show();
+            return;
+        }
+
+        const $btn = $('#submit-completion-btn');
+        $btn.prop('disabled', true).html('<span class="material-symbols-outlined rotating">sync</span> Uploading...');
+
+        const formData = new FormData();
+        formData.append('action', 'hhmgt_upload_completion_photos');
+        formData.append('nonce', hhmgtData.nonce);
+        formData.append('instance_id', currentState.currentTask.instance.id);
+
+        currentState.completionPhotos.forEach(function(file, index) {
+            formData.append('photos[]', file);
+        });
+
+        $.ajax({
+            url: hhmgtData.ajax_url,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    // Now complete the task with uploaded photo IDs
+                    completeTask(response.data.photo_ids || []);
+                } else {
+                    showError(response.data || 'Failed to upload photos');
+                    $btn.prop('disabled', false).html('<span class="material-symbols-outlined">check_circle</span> Complete Task');
+                }
+            },
+            error: function() {
+                showError('Failed to upload photos');
+                $btn.prop('disabled', false).html('<span class="material-symbols-outlined">check_circle</span> Complete Task');
+            }
+        });
+    }
+
+    /**
+     * Update photo preview in upload modal
+     */
+    function updatePhotoPreview() {
+        const $container = $('#photo-preview-container');
+        $container.empty();
+
+        if (!currentState.completionPhotos || currentState.completionPhotos.length === 0) {
+            return;
+        }
+
+        currentState.completionPhotos.forEach(function(file, index) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewHTML = `
+                    <div class="hhmgt-photo-preview-item">
+                        <img src="${e.target.result}" alt="Photo ${index + 1}">
+                        <button type="button" class="hhmgt-photo-remove" data-index="${index}">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                `;
+                $container.append(previewHTML);
+            };
+            reader.readAsDataURL(file);
         });
     }
 
