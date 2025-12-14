@@ -37,6 +37,7 @@ class HHMGT_Settings {
         add_action('wp_ajax_hhmgt_save_template', array($this, 'ajax_save_template'));
         add_action('wp_ajax_hhmgt_get_template', array($this, 'ajax_get_template'));
         add_action('wp_ajax_hhmgt_delete_template', array($this, 'ajax_delete_template'));
+        add_action('wp_ajax_hhmgt_fetch_rooms_from_hotelhub', array($this, 'ajax_fetch_rooms_from_hotelhub'));
     }
 
     /**
@@ -689,5 +690,114 @@ class HHMGT_Settings {
             'description', 'folder', 'event', 'today',
             'person', 'group', 'badge', 'admin_panel_settings'
         );
+    }
+
+    /**
+     * AJAX: Fetch rooms from Hotel Hub App settings
+     */
+    public function ajax_fetch_rooms_from_hotelhub() {
+        check_ajax_referer('hhmgt_fetch_rooms_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'hhmgt')));
+        }
+
+        $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
+
+        if (!$location_id) {
+            wp_send_json_error(array('message' => __('Invalid location ID', 'hhmgt')));
+        }
+
+        // Check if Hotel Hub App is active
+        if (!function_exists('hha')) {
+            wp_send_json_error(array('message' => __('Hotel Hub App is not active', 'hhmgt')));
+        }
+
+        // Get Newbook integration settings
+        $settings = hha()->integrations->get_settings($location_id, 'newbook');
+
+        if (!$settings || empty($settings['categories_sort'])) {
+            wp_send_json_error(array('message' => __('No rooms found in Hotel Hub settings. Please fetch sites from Newbook in Hotel Hub first.', 'hhmgt')));
+        }
+
+        $categories = $settings['categories_sort'];
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_location_hierarchy';
+
+        // Clear existing locations for this hotel
+        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
+
+        $sort_order = 0;
+        $count = 0;
+
+        // Create "Rooms" root
+        $wpdb->insert($table, array(
+            'location_id' => $location_id,
+            'parent_id' => null,
+            'location_name' => __('Rooms', 'hhmgt'),
+            'location_type' => '',
+            'hierarchy_level' => 0,
+            'full_path' => __('Rooms', 'hhmgt'),
+            'sort_order' => $sort_order++,
+            'is_enabled' => 1
+        ), array('%d', '%d', '%s', '%s', '%d', '%s', '%d', '%d'));
+        $rooms_id = $wpdb->insert_id;
+        $count++;
+
+        // Process each category
+        foreach ($categories as $category) {
+            // Skip excluded categories
+            if (!empty($category['excluded'])) {
+                continue;
+            }
+
+            $cat_name = !empty($category['name']) ? $category['name'] : __('Uncategorized', 'hhmgt');
+
+            // Create category (level 1)
+            $wpdb->insert($table, array(
+                'location_id' => $location_id,
+                'parent_id' => $rooms_id,
+                'location_name' => $cat_name,
+                'location_type' => '',
+                'hierarchy_level' => 1,
+                'full_path' => $cat_name,
+                'sort_order' => $sort_order++,
+                'is_enabled' => 1
+            ), array('%d', '%d', '%s', '%s', '%d', '%s', '%d', '%d'));
+            $cat_id = $wpdb->insert_id;
+            $count++;
+
+            // Create sites (level 2)
+            if (!empty($category['sites'])) {
+                foreach ($category['sites'] as $site) {
+                    // Skip excluded sites
+                    if (!empty($site['excluded'])) {
+                        continue;
+                    }
+
+                    $site_name = !empty($site['site_name']) ? $site['site_name'] : '';
+                    if (empty($site_name)) {
+                        continue;
+                    }
+
+                    $wpdb->insert($table, array(
+                        'location_id' => $location_id,
+                        'parent_id' => $cat_id,
+                        'location_name' => $site_name,
+                        'location_type' => '',
+                        'hierarchy_level' => 2,
+                        'full_path' => $site_name,
+                        'sort_order' => $sort_order++,
+                        'is_enabled' => 1
+                    ), array('%d', '%d', '%s', '%s', '%d', '%s', '%d', '%d'));
+                    $count++;
+                }
+            }
+        }
+
+        wp_send_json_success(array(
+            'message' => sprintf(__('%d locations imported successfully', 'hhmgt'), $count),
+            'count' => $count
+        ));
     }
 }

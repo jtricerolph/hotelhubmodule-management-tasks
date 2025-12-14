@@ -42,10 +42,18 @@ $hierarchical_locations = build_hierarchy($locations);
 
     <div class="hhmgt-hierarchy-builder">
         <div class="hhmgt-hierarchy-toolbar">
-            <button type="button" class="button button-primary" id="add-root-location">
-                <span class="material-symbols-outlined">add</span>
-                <?php _e('Add Root Location', 'hhmgt'); ?>
-            </button>
+            <div class="hhmgt-toolbar-buttons">
+                <button type="button" class="button button-primary" id="add-root-location">
+                    <span class="material-symbols-outlined">add</span>
+                    <?php _e('Add Root Location', 'hhmgt'); ?>
+                </button>
+                <?php if (function_exists('hha')): ?>
+                    <button type="button" class="button" id="fetch-rooms-from-hotelhub">
+                        <span class="material-symbols-outlined">download</span>
+                        <?php _e('Fetch Rooms from Hotel Hub', 'hhmgt'); ?>
+                    </button>
+                <?php endif; ?>
+            </div>
             <div class="hhmgt-hierarchy-info">
                 <span class="material-symbols-outlined">info</span>
                 <span><?php _e('Drag items to reorder. Click + to add child locations.', 'hhmgt'); ?></span>
@@ -157,6 +165,11 @@ $hierarchical_locations = build_hierarchy($locations);
     margin-bottom: 20px;
     padding-bottom: 15px;
     border-bottom: 1px solid #e5e7eb;
+}
+
+.hhmgt-toolbar-buttons {
+    display: flex;
+    gap: 10px;
 }
 
 .hhmgt-hierarchy-info {
@@ -272,6 +285,41 @@ jQuery(document).ready(function($) {
     // Add root location
     $('#add-root-location').on('click', function() {
         addLocation(null, 0);
+    });
+
+    // Fetch rooms from Hotel Hub
+    $('#fetch-rooms-from-hotelhub').on('click', function() {
+        if (!confirm('<?php echo esc_js(__('This will replace all existing locations. Continue?', 'hhmgt')); ?>')) {
+            return;
+        }
+
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="material-symbols-outlined">hourglass_empty</span> <?php echo esc_js(__('Fetching...', 'hhmgt')); ?>');
+
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'hhmgt_fetch_rooms_from_hotelhub',
+                nonce: '<?php echo wp_create_nonce('hhmgt_fetch_rooms_nonce'); ?>',
+                location_id: <?php echo intval($current_location_id); ?>
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data.message);
+                    location.reload();
+                } else {
+                    alert('<?php echo esc_js(__('Error:', 'hhmgt')); ?> ' + (response.data.message || '<?php echo esc_js(__('Unknown error', 'hhmgt')); ?>'));
+                }
+            },
+            error: function() {
+                alert('<?php echo esc_js(__('Request failed. Please try again.', 'hhmgt')); ?>');
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html(originalHtml);
+            }
+        });
     });
 
     // Add child location
