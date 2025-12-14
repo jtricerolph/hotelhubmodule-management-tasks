@@ -289,7 +289,7 @@ jQuery(document).ready(function($) {
 
     // Fetch rooms from Hotel Hub
     $('#fetch-rooms-from-hotelhub').on('click', function() {
-        if (!confirm('<?php echo esc_js(__('This will replace all existing locations. Continue?', 'hhmgt')); ?>')) {
+        if (!confirm('<?php echo esc_js(__('This will replace the "Rooms" branch if it exists. Other locations will be preserved. Continue?', 'hhmgt')); ?>')) {
             return;
         }
 

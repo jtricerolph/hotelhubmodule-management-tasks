@@ -693,6 +693,31 @@ class HHMGT_Settings {
     }
 
     /**
+     * Recursively delete a location and all its descendants
+     *
+     * @param int $parent_id The parent location ID to delete
+     * @param int $location_id The hotel location ID
+     */
+    private function delete_location_branch($parent_id, $location_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_location_hierarchy';
+
+        // First, recursively delete all children
+        $children = $wpdb->get_results($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE parent_id = %d AND location_id = %d",
+            $parent_id,
+            $location_id
+        ));
+
+        foreach ($children as $child) {
+            $this->delete_location_branch($child->id, $location_id);
+        }
+
+        // Then delete the parent itself
+        $wpdb->delete($table, array('id' => $parent_id), array('%d'));
+    }
+
+    /**
      * AJAX: Fetch rooms from Hotel Hub App settings
      */
     public function ajax_fetch_rooms_from_hotelhub() {
@@ -724,10 +749,24 @@ class HHMGT_Settings {
         global $wpdb;
         $table = $wpdb->prefix . 'hhmgt_location_hierarchy';
 
-        // Clear existing locations for this hotel
-        $wpdb->delete($table, array('location_id' => $location_id), array('%d'));
+        // Find existing "Rooms" root location
+        $existing_rooms = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE location_id = %d AND parent_id IS NULL AND location_name = %s",
+            $location_id,
+            __('Rooms', 'hhmgt')
+        ));
 
-        $sort_order = 0;
+        // If "Rooms" exists, delete it and all its descendants
+        if ($existing_rooms) {
+            $this->delete_location_branch($existing_rooms->id, $location_id);
+        }
+
+        // Get max sort_order from remaining locations to append at the end
+        $max_sort = $wpdb->get_var($wpdb->prepare(
+            "SELECT MAX(sort_order) FROM {$table} WHERE location_id = %d",
+            $location_id
+        ));
+        $sort_order = ($max_sort !== null) ? intval($max_sort) + 1 : 0;
         $count = 0;
 
         // Create "Rooms" root
