@@ -115,26 +115,6 @@ if (!defined('ABSPATH')) {
         <span class="displaying-num">
             <?php printf(_n('%s task', '%s tasks', $total_instances, 'hhmgt'), number_format_i18n($total_instances)); ?>
         </span>
-        <?php if (defined('WP_DEBUG') && WP_DEBUG):
-            global $wpdb;
-            $raw_count = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_task_instances WHERE location_id = %d",
-                $current_location_id
-            ));
-            $today_count = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->prefix}hhmgt_task_instances WHERE location_id = %d AND scheduled_date <= %s",
-                $current_location_id, current_time('Y-m-d')
-            ));
-        ?>
-        <div style="margin-top: 5px; color: #666; font-size: 12px; background: #f0f0f0; padding: 8px; border-radius: 4px;">
-            Debug: array_count=<?php echo count($instances); ?>, filtered_total=<?php echo $total_instances; ?><br>
-            Raw DB count: <?php echo $raw_count; ?>, Today/past count: <?php echo $today_count; ?><br>
-            Filters: completed=<?php echo $filters['include_completed'] ? '1' : '0'; ?>,
-            future=<?php echo $filters['include_future'] ? '1' : '0'; ?><br>
-            Main query: <code style="word-break: break-all; display: block; max-height: 100px; overflow: auto; background: #fff; padding: 5px; margin: 5px 0;"><?php echo esc_html($debug_query); ?></code>
-            Query error: <code><?php echo esc_html($debug_error ?: 'none'); ?></code>
-        </div>
-        <?php endif; ?>
     </div>
 
     <!-- Tasks Table -->
