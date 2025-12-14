@@ -684,18 +684,23 @@ jQuery(document).ready(function($) {
         $('input[name="location_hierarchy_ids[]"]').prop('checked', false);
     });
 
-    // Select/deselect children of a parent location
+    // Select/deselect children of a parent location (only leaf nodes)
     $('.hhmgt-select-children').on('click', function(e) {
         e.preventDefault();
         const parentId = $(this).data('parent-id');
-        // Find all direct and indirect children of this parent
-        const $children = $('.hhmgt-location-row').filter(function() {
-            return isChildOf($(this), parentId);
+        // Find all direct and indirect children of this parent that are LEAF nodes (no children)
+        const $leafChildren = $('.hhmgt-location-row').filter(function() {
+            // Must be a child of the clicked parent
+            if (!isChildOf($(this), parentId)) {
+                return false;
+            }
+            // Must be a leaf node (doesn't have a "select children" button)
+            return $(this).find('.hhmgt-select-children').length === 0;
         });
-        // Check if all children are currently checked
-        const $checkboxes = $children.find('input[type="checkbox"]');
+        // Check if all leaf children are currently checked
+        const $checkboxes = $leafChildren.find('input[type="checkbox"]');
         const allChecked = $checkboxes.length > 0 && $checkboxes.toArray().every(cb => cb.checked);
-        // Toggle all children
+        // Toggle all leaf children
         $checkboxes.prop('checked', !allChecked);
     });
 
