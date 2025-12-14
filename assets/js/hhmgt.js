@@ -16,7 +16,6 @@
             include_future: true,
             department: [], // Multi-select
             status: [], // Multi-select
-            location_type: [], // Multi-select
             location: [], // Multi-select
             show_completed: false,
             search: '',
@@ -65,7 +64,7 @@
         initHeartbeat();
 
         // Load initial data
-        loadLocationTypes();
+        loadLocations();
         loadTasks();
     }
 
@@ -126,11 +125,6 @@
         $(document).on('change', '.hhmgt-multiselect-option input[type="checkbox"]', function() {
             const $multiselect = $(this).closest('.hhmgt-multiselect');
             updateMultiSelectLabel($multiselect);
-
-            // Trigger location load when location type changes
-            if ($multiselect.data('filter') === 'location_type') {
-                loadLocations(getMultiSelectValues($multiselect));
-            }
         });
 
         // Handle Select All
@@ -139,11 +133,6 @@
             const $multiselect = $(this).closest('.hhmgt-multiselect');
             $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]').prop('checked', true);
             updateMultiSelectLabel($multiselect);
-
-            // Trigger location load when location type changes
-            if ($multiselect.data('filter') === 'location_type') {
-                loadLocations(getMultiSelectValues($multiselect));
-            }
         });
 
         // Handle Clear All
@@ -152,11 +141,6 @@
             const $multiselect = $(this).closest('.hhmgt-multiselect');
             $multiselect.find('.hhmgt-multiselect-option input[type="checkbox"]').prop('checked', false);
             updateMultiSelectLabel($multiselect);
-
-            // Trigger location load when location type changes
-            if ($multiselect.data('filter') === 'location_type') {
-                loadLocations(getMultiSelectValues($multiselect));
-            }
         });
     }
 
@@ -175,14 +159,12 @@
             switch(filterName) {
                 case 'department': labelText = 'All Departments'; break;
                 case 'status': labelText = 'All Statuses'; break;
-                case 'location_type': labelText = 'All Types'; break;
                 case 'location': labelText = 'All Locations'; break;
             }
         } else if (checked.length === total) {
             switch(filterName) {
                 case 'department': labelText = 'All Departments'; break;
                 case 'status': labelText = 'All Statuses'; break;
-                case 'location_type': labelText = 'All Types'; break;
                 case 'location': labelText = 'All Locations'; break;
             }
         } else if (checked.length === 1) {
@@ -246,12 +228,6 @@
                     setMultiSelectValues($('.hhmgt-multiselect[data-filter="status"]'), values);
                 }
 
-                if (filters.location_type) {
-                    const values = Array.isArray(filters.location_type) ? filters.location_type : [filters.location_type];
-                    currentState.filters.location_type = values;
-                    // Will be set after location types are loaded
-                }
-
                 if (filters.location) {
                     const values = Array.isArray(filters.location) ? filters.location : [filters.location];
                     currentState.filters.location = values;
@@ -292,7 +268,6 @@
         const filtersToSave = {
             department: currentState.filters.department,
             status: currentState.filters.status,
-            location_type: currentState.filters.location_type,
             location: currentState.filters.location,
             group_by: currentState.filters.group_by,
             include_future: currentState.filters.include_future,
@@ -319,12 +294,6 @@
             if (e.which === 13) {
                 applyFilters();
             }
-        });
-
-        // Location type change - load locations
-        $('#filter-location-type').on('change', function() {
-            const locationType = $(this).val();
-            loadLocations(locationType);
         });
 
         // Task card click
@@ -535,7 +504,6 @@
             include_future: $('#filter-include-future').is(':checked'),
             department: getMultiSelectValues($('.hhmgt-multiselect[data-filter="department"]')),
             status: getMultiSelectValues($('.hhmgt-multiselect[data-filter="status"]')),
-            location_type: getMultiSelectValues($('.hhmgt-multiselect[data-filter="location_type"]')),
             location: getMultiSelectValues($('.hhmgt-multiselect[data-filter="location"]')),
             show_completed: $('#filter-show-completed').is(':checked'),
             search: $('#filter-search').val(),
@@ -551,79 +519,13 @@
     }
 
     /**
-     * Load location types
+     * Load locations (hierarchically)
      */
-    function loadLocationTypes() {
-        debugLog('Loading location types...');
-
-        $.ajax({
-            url: hhmgtData.ajax_url,
-            type: 'POST',
-            data: {
-                action: 'hhmgt_get_location_types',
-                nonce: hhmgtData.nonce,
-                location_id: currentState.location_id
-            },
-            success: function(response) {
-                debugLog('Location types response:', response);
-
-                if (response.success && response.data.types) {
-                    const $multiselect = $('.hhmgt-multiselect[data-filter="location_type"]');
-                    const $options = $multiselect.find('.hhmgt-multiselect-options');
-
-                    if (response.data.types.length === 0) {
-                        debugLog('Warning: No location types found');
-                        $options.html('<p style="padding: 8px; color: #dc2626; font-size: 12px;">No location types configured</p>');
-                    } else {
-                        // Clear existing options
-                        $options.empty();
-
-                        // Add checkboxes for each type
-                        response.data.types.forEach(function(type) {
-                            $options.append(`
-                                <label class="hhmgt-multiselect-option">
-                                    <input type="checkbox" value="${type}">
-                                    <span>${type}</span>
-                                </label>
-                            `);
-                        });
-                        debugLog('Location types loaded:', response.data.types.length);
-
-                        // Restore saved location type after options are added
-                        if (currentState.filters.location_type && currentState.filters.location_type.length > 0) {
-                            setMultiSelectValues($multiselect, currentState.filters.location_type);
-                            loadLocations(currentState.filters.location_type);
-                        }
-                    }
-                } else {
-                    console.error('[HHMGT] Failed to load location types:', response);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('[HHMGT] Location types AJAX error:', {xhr, status, error});
-                showError('Failed to load location types');
-            }
-        });
-    }
-
-    /**
-     * Load locations by type
-     */
-    function loadLocations(locationTypes) {
+    function loadLocations() {
         const $multiselect = $('.hhmgt-multiselect[data-filter="location"]');
         const $options = $multiselect.find('.hhmgt-multiselect-options');
 
-        // Convert to array if single value (for backwards compatibility)
-        const types = Array.isArray(locationTypes) ? locationTypes : (locationTypes ? [locationTypes] : []);
-
-        if (types.length === 0) {
-            debugLog('No location type selected, showing all locations');
-            // Clear options and show message
-            $options.html('<p style="padding: 8px; color: #6b7280; font-size: 12px;">Select location type(s) first</p>');
-            return;
-        }
-
-        debugLog('Loading locations for types:', types);
+        debugLog('Loading locations...');
 
         $.ajax({
             url: hhmgtData.ajax_url,
@@ -631,26 +533,27 @@
             data: {
                 action: 'hhmgt_get_locations',
                 nonce: hhmgtData.nonce,
-                location_id: currentState.location_id,
-                location_type: types // Send array to backend
+                location_id: currentState.location_id
             },
             success: function(response) {
                 debugLog('Locations response:', response);
 
                 if (response.success && response.data.locations) {
                     if (response.data.locations.length === 0) {
-                        debugLog('Warning: No locations found for types:', types);
-                        $options.html('<p style="padding: 8px; color: #dc2626; font-size: 12px;">No locations found for selected types</p>');
+                        debugLog('Warning: No locations found');
+                        $options.html('<p style="padding: 8px; color: #6b7280; font-size: 12px;">No locations configured</p>');
                     } else {
                         // Clear existing options
                         $options.empty();
 
-                        // Add checkboxes for each location
+                        // Add checkboxes for each location (with hierarchy indentation)
                         response.data.locations.forEach(function(loc) {
+                            const indent = loc.indent || '';
+                            const displayName = indent + (loc.location_name || loc.full_path);
                             $options.append(`
-                                <label class="hhmgt-multiselect-option">
+                                <label class="hhmgt-multiselect-option" style="padding-left: ${(loc.hierarchy_level || 0) * 12 + 8}px;">
                                     <input type="checkbox" value="${loc.id}">
-                                    <span>${loc.full_path || loc.location_name}</span>
+                                    <span>${displayName}</span>
                                 </label>
                             `);
                         });

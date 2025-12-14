@@ -653,17 +653,62 @@ class HHMGT_Tasks_Admin {
     }
 
     /**
-     * Get location hierarchy for a location
+     * Get location hierarchy for a location (properly ordered for display)
      */
     private static function get_location_hierarchy($location_id) {
         global $wpdb;
 
-        return $wpdb->get_results($wpdb->prepare(
+        // Get all locations ordered by sort_order
+        $locations = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$wpdb->prefix}hhmgt_location_hierarchy
             WHERE location_id = %d AND is_enabled = 1
-            ORDER BY hierarchy_level ASC, sort_order ASC",
+            ORDER BY sort_order ASC",
             $location_id
         ));
+
+        // Build hierarchical structure and flatten for proper display order
+        return self::flatten_hierarchy($locations);
+    }
+
+    /**
+     * Recursively flatten hierarchy for proper display order
+     *
+     * @param array $locations All locations
+     * @param int|null $parent_id Parent ID to filter by
+     * @param int $level Current hierarchy level
+     * @return array Flattened locations in proper order
+     */
+    private static function flatten_hierarchy($locations, $parent_id = null, $level = 0) {
+        $result = array();
+        foreach ($locations as $loc) {
+            // Match parent_id (handle both null and 0 as root)
+            $loc_parent = $loc->parent_id ? intval($loc->parent_id) : null;
+            if ($loc_parent === $parent_id) {
+                $loc->hierarchy_level = $level;
+                $loc->has_children = self::location_has_children($locations, $loc->id);
+                $result[] = $loc;
+                // Recursively add children immediately after parent
+                $children = self::flatten_hierarchy($locations, intval($loc->id), $level + 1);
+                $result = array_merge($result, $children);
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Check if a location has children
+     *
+     * @param array $locations All locations
+     * @param int $parent_id Parent ID to check
+     * @return bool
+     */
+    private static function location_has_children($locations, $parent_id) {
+        foreach ($locations as $loc) {
+            if ($loc->parent_id && intval($loc->parent_id) === intval($parent_id)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

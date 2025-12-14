@@ -82,13 +82,6 @@ $hierarchical_locations = build_hierarchy($locations);
                                        required>
                             </div>
 
-                            <div class="hhmgt-hierarchy-field">
-                                <input type="text"
-                                       name="locations[<?php echo $index; ?>][location_type]"
-                                       value="<?php echo esc_attr($location->location_type ?? ''); ?>"
-                                       placeholder="<?php esc_attr_e('Type (e.g., Bedroom)', 'hhmgt'); ?>">
-                            </div>
-
                             <label class="hhmgt-hierarchy-enabled">
                                 <input type="checkbox"
                                        name="locations[<?php echo $index; ?>][is_enabled]"
@@ -127,12 +120,6 @@ $hierarchical_locations = build_hierarchy($locations);
                                name="locations[INDEX][location_name]"
                                placeholder="<?php esc_attr_e('Location name (e.g., Room 101)', 'hhmgt'); ?>"
                                required>
-                    </div>
-
-                    <div class="hhmgt-hierarchy-field">
-                        <input type="text"
-                               name="locations[INDEX][location_type]"
-                               placeholder="<?php esc_attr_e('Type (e.g., Bedroom)', 'hhmgt'); ?>">
                     </div>
 
                     <label class="hhmgt-hierarchy-enabled">

@@ -468,11 +468,8 @@ class HHMGT_Settings {
 
                 $old_id = !empty($loc_data['id']) && $loc_data['id'] !== 'new' ? $loc_data['id'] : null;
 
-                // Build full path
+                // Full path is just the location name (type is no longer used)
                 $full_path = $loc_data['location_name'];
-                if (!empty($loc_data['location_type'])) {
-                    $full_path .= ' (' . $loc_data['location_type'] . ')';
-                }
 
                 // Insert with parent_id as null for now
                 $wpdb->insert(
@@ -482,7 +479,7 @@ class HHMGT_Settings {
                         'parent_id' => null, // Will update in second pass
                         'hierarchy_level' => intval($loc_data['hierarchy_level'] ?? 0),
                         'location_name' => sanitize_text_field($loc_data['location_name']),
-                        'location_type' => sanitize_text_field($loc_data['location_type'] ?? ''),
+                        'location_type' => '', // Deprecated - no longer used
                         'full_path' => $full_path,
                         'sort_order' => intval($loc_data['sort_order'] ?? 0),
                         'is_enabled' => isset($loc_data['is_enabled']) ? 1 : 0,

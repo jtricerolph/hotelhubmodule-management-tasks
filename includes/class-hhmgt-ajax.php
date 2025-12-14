@@ -66,9 +66,6 @@ class HHMGT_Ajax {
         $statuses = isset($_POST['status']) ? (array)$_POST['status'] : array();
         $statuses = array_filter(array_map('sanitize_text_field', $statuses));
 
-        $location_types = isset($_POST['location_type']) ? (array)$_POST['location_type'] : array();
-        $location_types = array_filter(array_map('sanitize_text_field', $location_types));
-
         $location_filters = isset($_POST['location']) ? (array)$_POST['location'] : array();
         $location_filters = array_filter(array_map('intval', $location_filters));
 
@@ -115,18 +112,15 @@ class HHMGT_Ajax {
             $where_values = array_merge($where_values, $statuses);
         }
 
-        // Filter by location type (multi-select)
-        if (!empty($location_types)) {
-            $placeholders = implode(', ', array_fill(0, count($location_types), '%s'));
-            $where_clauses[] = "l.location_type IN ($placeholders)";
-            $where_values = array_merge($where_values, $location_types);
-        }
-
-        // Filter by specific location (multi-select - use instance's location_hierarchy_id)
+        // Filter by location (includes children of selected parents)
         if (!empty($location_filters)) {
-            $placeholders = implode(', ', array_fill(0, count($location_filters), '%d'));
-            $where_clauses[] = "i.location_hierarchy_id IN ($placeholders)";
-            $where_values = array_merge($where_values, $location_filters);
+            // Get all location IDs including children of selected parents
+            $all_location_ids = self::get_locations_with_children($location_id, $location_filters);
+            if (!empty($all_location_ids)) {
+                $placeholders = implode(', ', array_fill(0, count($all_location_ids), '%d'));
+                $where_clauses[] = "i.location_hierarchy_id IN ($placeholders)";
+                $where_values = array_merge($where_values, $all_location_ids);
+            }
         }
 
         // Filter completed
@@ -792,53 +786,67 @@ class HHMGT_Ajax {
 
     /**
      * Get location types (AJAX handler)
+     * @deprecated Location types are no longer used - hierarchy defines types
      */
     public function get_location_types() {
-        global $wpdb;
-
         check_ajax_referer('hhmgt_ajax_nonce', 'nonce');
+        // Deprecated - return empty array
+        wp_send_json_success(array('types' => array()));
+    }
 
-        $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
-
-        if (!$location_id) {
-            wp_send_json_error(array('message' => __('Invalid location', 'hhmgt')));
-        }
-
+    /**
+     * Get all location IDs including children of selected parents
+     *
+     * @param int $location_id Main location ID
+     * @param array $selected_ids Selected location hierarchy IDs
+     * @return array All location IDs including children
+     */
+    private static function get_locations_with_children($location_id, $selected_ids) {
+        global $wpdb;
         $table_locations = $wpdb->prefix . 'hhmgt_location_hierarchy';
 
-        // Get location types that are not empty
-        $types = $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT location_type
-            FROM {$table_locations}
-            WHERE location_id = %d
-            AND location_type IS NOT NULL
-            AND location_type != ''
-            AND is_enabled = 1
-            ORDER BY location_type ASC",
+        // Get all locations for this location
+        $all_locations = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, parent_id FROM {$table_locations}
+            WHERE location_id = %d AND is_enabled = 1",
             $location_id
         ));
 
-        // If no types found, check if there are ANY locations in hierarchy
-        if (empty($types)) {
-            $total_locations = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table_locations} WHERE location_id = %d AND is_enabled = 1",
-                $location_id
-            ));
-
-            // Log for debugging
-            error_log("[HHMGT] No location types found for location $location_id. Total locations: $total_locations");
-
-            // If locations exist but have no type, return a generic type
-            if ($total_locations > 0) {
-                $types = array('General');
+        // Build a map of parent_id => children
+        $children_map = array();
+        foreach ($all_locations as $loc) {
+            $parent = $loc->parent_id ?: 0;
+            if (!isset($children_map[$parent])) {
+                $children_map[$parent] = array();
             }
+            $children_map[$parent][] = $loc->id;
         }
 
-        wp_send_json_success(array('types' => $types));
+        // Recursively get all children
+        $result = array();
+        foreach ($selected_ids as $id) {
+            $result[] = $id;
+            self::add_children_recursive($id, $children_map, $result);
+        }
+
+        return array_unique($result);
+    }
+
+    /**
+     * Recursively add children to result array
+     */
+    private static function add_children_recursive($parent_id, $children_map, &$result) {
+        if (isset($children_map[$parent_id])) {
+            foreach ($children_map[$parent_id] as $child_id) {
+                $result[] = $child_id;
+                self::add_children_recursive($child_id, $children_map, $result);
+            }
+        }
     }
 
     /**
      * Get locations (AJAX handler)
+     * Returns all locations in hierarchical order
      */
     public function get_locations() {
         global $wpdb;
@@ -847,43 +855,43 @@ class HHMGT_Ajax {
 
         $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
 
-        // Handle multi-select location types (can be array or single value)
-        $location_types = isset($_POST['location_type']) ? (array)$_POST['location_type'] : array();
-        $location_types = array_filter(array_map('sanitize_text_field', $location_types));
-
         if (!$location_id) {
             wp_send_json_error(array('message' => __('Invalid location', 'hhmgt')));
         }
 
         $table_locations = $wpdb->prefix . 'hhmgt_location_hierarchy';
 
-        $where_clauses = array("location_id = %d", "is_enabled = 1");
-        $where_values = array($location_id);
-
-        // Filter by location types if specified (excluding "General")
-        $filtered_types = array_filter($location_types, function($type) {
-            return $type !== 'General' && $type !== '';
-        });
-
-        if (!empty($filtered_types)) {
-            $placeholders = implode(', ', array_fill(0, count($filtered_types), '%s'));
-            $where_clauses[] = "location_type IN ($placeholders)";
-            $where_values = array_merge($where_values, $filtered_types);
-        }
-
-        $where_sql = implode(' AND ', $where_clauses);
-
-        $locations = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, location_name, full_path, location_type
+        // Get all locations and build hierarchy
+        $all_locations = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, parent_id, location_name, full_path, hierarchy_level
             FROM {$table_locations}
-            WHERE {$where_sql}
-            ORDER BY full_path ASC",
-            $where_values
+            WHERE location_id = %d AND is_enabled = 1
+            ORDER BY sort_order ASC",
+            $location_id
         ));
 
-        error_log("[HHMGT] Loaded " . count($locations) . " locations for location_id=$location_id, types=[" . implode(', ', $location_types) . "]");
+        // Flatten into proper hierarchical order
+        $locations = self::flatten_locations_for_display($all_locations);
 
         wp_send_json_success(array('locations' => $locations));
+    }
+
+    /**
+     * Flatten locations into hierarchical display order
+     */
+    private static function flatten_locations_for_display($locations, $parent_id = null, $level = 0) {
+        $result = array();
+        foreach ($locations as $loc) {
+            $loc_parent = $loc->parent_id ? intval($loc->parent_id) : null;
+            if ($loc_parent === $parent_id) {
+                $loc->hierarchy_level = $level;
+                $loc->indent = str_repeat('— ', $level); // For display
+                $result[] = $loc;
+                $children = self::flatten_locations_for_display($locations, intval($loc->id), $level + 1);
+                $result = array_merge($result, $children);
+            }
+        }
+        return $result;
     }
 
     /**

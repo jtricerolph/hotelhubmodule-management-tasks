@@ -201,16 +201,20 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
                             <?php else: ?>
                                 <div class="hhmgt-location-list">
                                     <?php foreach ($location_hierarchy as $location): ?>
-                                        <label class="hhmgt-location-item" style="padding-left: <?php echo ($location->hierarchy_level * 20); ?>px;">
-                                            <input type="checkbox"
-                                                   name="location_hierarchy_ids[]"
-                                                   value="<?php echo esc_attr($location->id); ?>"
-                                                   <?php checked(in_array($location->id, $task_locations ?? array())); ?>>
-                                            <span><?php echo esc_html($location->location_name); ?></span>
-                                            <?php if ($location->location_type): ?>
-                                                <small>(<?php echo esc_html($location->location_type); ?>)</small>
+                                        <div class="hhmgt-location-row" style="padding-left: <?php echo ($location->hierarchy_level * 20); ?>px;" data-location-id="<?php echo esc_attr($location->id); ?>" data-parent-id="<?php echo esc_attr($location->parent_id ?: ''); ?>">
+                                            <label class="hhmgt-location-item">
+                                                <input type="checkbox"
+                                                       name="location_hierarchy_ids[]"
+                                                       value="<?php echo esc_attr($location->id); ?>"
+                                                       <?php checked(in_array($location->id, $task_locations ?? array())); ?>>
+                                                <span><?php echo esc_html($location->location_name); ?></span>
+                                            </label>
+                                            <?php if (!empty($location->has_children)): ?>
+                                                <button type="button" class="button-link hhmgt-select-children" data-parent-id="<?php echo esc_attr($location->id); ?>" title="<?php esc_attr_e('Select/deselect all children', 'hhmgt'); ?>">
+                                                    <span class="dashicons dashicons-plus-alt2"></span>
+                                                </button>
                                             <?php endif; ?>
-                                        </label>
+                                        </div>
                                     <?php endforeach; ?>
                                 </div>
                                 <div style="margin-top: 10px;">
@@ -498,25 +502,43 @@ $page_title = $is_edit ? __('Edit Task', 'hhmgt') : __('Add New Task', 'hhmgt');
     background: #f9fafb;
 }
 
+.hhmgt-location-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.hhmgt-location-row:hover {
+    background: #fff;
+}
+
 .hhmgt-location-item {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px;
     cursor: pointer;
-}
-
-.hhmgt-location-item:hover {
-    background: #fff;
+    flex: 1;
 }
 
 .hhmgt-location-item input[type="checkbox"] {
     margin: 0;
 }
 
-.hhmgt-location-item small {
-    color: #6b7280;
-    margin-left: 4px;
+.hhmgt-select-children {
+    padding: 4px;
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.hhmgt-select-children:hover {
+    color: #135e96;
+}
+
+.hhmgt-select-children .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
 }
 
 .hhmgt-submit-actions {
@@ -661,6 +683,35 @@ jQuery(document).ready(function($) {
     $('#deselect-all-locations').on('click', function() {
         $('input[name="location_hierarchy_ids[]"]').prop('checked', false);
     });
+
+    // Select/deselect children of a parent location
+    $('.hhmgt-select-children').on('click', function(e) {
+        e.preventDefault();
+        const parentId = $(this).data('parent-id');
+        // Find all direct and indirect children of this parent
+        const $children = $('.hhmgt-location-row').filter(function() {
+            return isChildOf($(this), parentId);
+        });
+        // Check if all children are currently checked
+        const $checkboxes = $children.find('input[type="checkbox"]');
+        const allChecked = $checkboxes.length > 0 && $checkboxes.toArray().every(cb => cb.checked);
+        // Toggle all children
+        $checkboxes.prop('checked', !allChecked);
+    });
+
+    // Helper function to check if element is a child (direct or indirect) of parentId
+    function isChildOf($element, parentId) {
+        let currentParent = $element.data('parent-id');
+        while (currentParent) {
+            if (String(currentParent) === String(parentId)) {
+                return true;
+            }
+            // Find the parent element and get its parent-id
+            const $parentElement = $('.hhmgt-location-row[data-location-id="' + currentParent + '"]');
+            currentParent = $parentElement.data('parent-id');
+        }
+        return false;
+    }
 
     // Schedule Now button
     $('#schedule-now-btn').on('click', function() {

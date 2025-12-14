@@ -145,26 +145,6 @@ class HHMGT_Display {
                             </div>
                         </div>
 
-                        <!-- Location Type filter -->
-                        <div class="hhmgt-filter-group">
-                            <label><?php esc_html_e('Location Type', 'hhmgt'); ?></label>
-                            <div class="hhmgt-multiselect" data-filter="location_type">
-                                <button type="button" class="hhmgt-multiselect-button">
-                                    <span class="hhmgt-multiselect-label"><?php esc_html_e('All Types', 'hhmgt'); ?></span>
-                                    <span class="material-symbols-outlined">expand_more</span>
-                                </button>
-                                <div class="hhmgt-multiselect-dropdown">
-                                    <div class="hhmgt-multiselect-actions">
-                                        <button type="button" class="hhmgt-multiselect-action" data-action="select-all"><?php esc_html_e('Select All', 'hhmgt'); ?></button>
-                                        <button type="button" class="hhmgt-multiselect-action" data-action="clear-all"><?php esc_html_e('Clear All', 'hhmgt'); ?></button>
-                                    </div>
-                                    <div class="hhmgt-multiselect-options">
-                                        <!-- Populated dynamically via AJAX -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Location filter -->
                         <div class="hhmgt-filter-group">
                             <label><?php esc_html_e('Location', 'hhmgt'); ?></label>
@@ -179,7 +159,7 @@ class HHMGT_Display {
                                         <button type="button" class="hhmgt-multiselect-action" data-action="clear-all"><?php esc_html_e('Clear All', 'hhmgt'); ?></button>
                                     </div>
                                     <div class="hhmgt-multiselect-options">
-                                        <!-- Populated dynamically via AJAX based on type -->
+                                        <!-- Populated dynamically via AJAX -->
                                     </div>
                                 </div>
                             </div>
