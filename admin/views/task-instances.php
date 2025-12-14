@@ -121,14 +121,14 @@ if (!defined('ABSPATH')) {
     <table class="wp-list-table widefat fixed striped hhmgt-instances-table">
         <thead>
             <tr>
-                <th scope="col" style="width: 25%;"><?php _e('Task Name', 'hhmgt'); ?></th>
-                <th scope="col" style="width: 15%;"><?php _e('Location', 'hhmgt'); ?></th>
-                <th scope="col" style="width: 12%;"><?php _e('Department', 'hhmgt'); ?></th>
-                <th scope="col" style="width: 10%;"><?php _e('Scheduled', 'hhmgt'); ?></th>
-                <th scope="col" style="width: 10%;"><?php _e('Due', 'hhmgt'); ?></th>
+                <th scope="col" style="width: 28%;"><?php _e('Task Name', 'hhmgt'); ?></th>
+                <th scope="col" style="width: 18%;"><?php _e('Location', 'hhmgt'); ?></th>
+                <th scope="col" style="width: 5%;"><?php _e('Dept', 'hhmgt'); ?></th>
+                <th scope="col" style="width: 9%;"><?php _e('Scheduled', 'hhmgt'); ?></th>
+                <th scope="col" style="width: 9%;"><?php _e('Due', 'hhmgt'); ?></th>
                 <th scope="col" style="width: 10%;"><?php _e('Status', 'hhmgt'); ?></th>
-                <th scope="col" style="width: 10%;"><?php _e('Completed', 'hhmgt'); ?></th>
-                <th scope="col" style="width: 8%;"><?php _e('Actions', 'hhmgt'); ?></th>
+                <th scope="col" style="width: 12%;"><?php _e('Completed', 'hhmgt'); ?></th>
+                <th scope="col" style="width: 9%;"><?php _e('Actions', 'hhmgt'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -143,11 +143,6 @@ if (!defined('ABSPATH')) {
                     <tr data-instance-id="<?php echo esc_attr($instance->id); ?>">
                         <td>
                             <strong><?php echo esc_html($instance->task_name); ?></strong>
-                            <?php if ($instance->task_description): ?>
-                                <br><span class="description" style="color: #666; font-size: 12px;">
-                                    <?php echo esc_html(wp_trim_words($instance->task_description, 10)); ?>
-                                </span>
-                            <?php endif; ?>
                         </td>
                         <td>
                             <?php if ($instance->location_name): ?>
@@ -158,15 +153,15 @@ if (!defined('ABSPATH')) {
                         </td>
                         <td>
                             <?php if ($instance->dept_name): ?>
-                                <span class="hhmgt-dept-badge" style="background-color: <?php echo esc_attr($instance->dept_color); ?>; color: #fff; padding: 2px 8px; border-radius: 3px; font-size: 12px;">
-                                    <?php echo esc_html($instance->dept_name); ?>
+                                <span class="hhmgt-dept-icon" style="background-color: <?php echo esc_attr($instance->dept_color); ?>; color: #fff; padding: 4px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="<?php echo esc_attr($instance->dept_name); ?>">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;"><?php echo esc_html($instance->dept_icon ?: 'assignment'); ?></span>
                                 </span>
                             <?php else: ?>
                                 <span style="color: #999;">—</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?php echo esc_html(date_i18n(get_option('date_format'), strtotime($instance->scheduled_date))); ?>
+                            <?php echo esc_html(date_i18n('d/m/y', strtotime($instance->scheduled_date))); ?>
                         </td>
                         <td>
                             <?php
@@ -175,7 +170,7 @@ if (!defined('ABSPATH')) {
                             $is_overdue = $due_date < $today && !$instance->is_complete_state;
                             ?>
                             <span style="<?php echo $is_overdue ? 'color: #dc3232; font-weight: 600;' : ''; ?>">
-                                <?php echo esc_html(date_i18n(get_option('date_format'), $due_date)); ?>
+                                <?php echo esc_html(date_i18n('d/m/y', $due_date)); ?>
                             </span>
                         </td>
                         <td>
@@ -189,7 +184,7 @@ if (!defined('ABSPATH')) {
                         </td>
                         <td>
                             <?php if ($instance->completed_at): ?>
-                                <?php echo esc_html(date_i18n(get_option('date_format'), strtotime($instance->completed_at))); ?>
+                                <?php echo esc_html(date_i18n('d/m/y', strtotime($instance->completed_at))); ?>
                                 <?php if ($instance->completed_by_name): ?>
                                     <br><span style="color: #666; font-size: 11px;"><?php echo esc_html($instance->completed_by_name); ?></span>
                                 <?php endif; ?>
