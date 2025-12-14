@@ -195,7 +195,7 @@ class HHMGT_Tasks_Admin {
             t.task_name, t.description AS task_description, t.recurrence_type,
             s.state_name, s.color_hex, s.is_complete_state,
             d.dept_name, d.icon_name AS dept_icon, d.color_hex AS dept_color,
-            lh.level_name AS location_level, lh.location_name AS location_name,
+            lh.location_type AS location_level, lh.location_name AS location_name,
             u.display_name AS completed_by_name";
 
         $from = " FROM {$table_instances} i
