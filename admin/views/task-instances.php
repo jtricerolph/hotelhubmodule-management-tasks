@@ -183,8 +183,8 @@ if (!defined('ABSPATH')) {
                             <strong><?php echo esc_html($instance->task_name); ?></strong>
                         </td>
                         <td>
-                            <?php if ($instance->location_name): ?>
-                                <?php echo esc_html($instance->location_level); ?>: <?php echo esc_html($instance->location_name); ?>
+                            <?php if ($instance->location_path): ?>
+                                <?php echo esc_html($instance->location_path); ?>
                             <?php else: ?>
                                 <span style="color: #999;">—</span>
                             <?php endif; ?>
