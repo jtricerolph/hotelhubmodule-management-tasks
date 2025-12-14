@@ -238,11 +238,12 @@ class HHMGT_Tasks_Admin {
         // Order by due date, then scheduled date
         $order = " ORDER BY i.due_date ASC, i.scheduled_date ASC";
 
-        // Get total count
+        // Get total count (use copy of params for count query)
+        $count_params = $params;
         $count_query = "SELECT COUNT(*) " . $from . $where;
-        $total = $wpdb->get_var($wpdb->prepare($count_query, $params));
+        $total = $wpdb->get_var($wpdb->prepare($count_query, $count_params));
 
-        // Add pagination
+        // Add pagination to main query params
         $offset = ($paged - 1) * $per_page;
         $limit = " LIMIT %d OFFSET %d";
         $params[] = $per_page;
@@ -252,8 +253,17 @@ class HHMGT_Tasks_Admin {
         $query = $select . $from . $where . $order . $limit;
         $instances = $wpdb->get_results($wpdb->prepare($query, $params));
 
+        // Debug: log query info if WP_DEBUG is enabled
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('HHMGT Instances Query: ' . $wpdb->last_query);
+            error_log('HHMGT Instances Count: ' . $total . ', Results: ' . ($instances ? count($instances) : 0));
+            if ($wpdb->last_error) {
+                error_log('HHMGT Task Instances Query Error: ' . $wpdb->last_error);
+            }
+        }
+
         return array(
-            'instances' => $instances,
+            'instances' => $instances ? $instances : array(),
             'total' => intval($total)
         );
     }
