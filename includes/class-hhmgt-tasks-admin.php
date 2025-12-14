@@ -159,6 +159,8 @@ class HHMGT_Tasks_Admin {
         $instances = $result['instances'];
         $total_instances = $result['total'];
         $total_pages = ceil($total_instances / $per_page);
+        $debug_query = isset($result['debug_query']) ? $result['debug_query'] : '';
+        $debug_error = isset($result['debug_error']) ? $result['debug_error'] : '';
 
         // Get departments for filter
         $departments = self::get_departments($current_location_id);
@@ -253,18 +255,24 @@ class HHMGT_Tasks_Admin {
         $query = $select . $from . $where . $order . $limit;
         $instances = $wpdb->get_results($wpdb->prepare($query, $params));
 
+        // Store debug info
+        $debug_query = $wpdb->last_query;
+        $debug_error = $wpdb->last_error;
+
         // Debug: log query info if WP_DEBUG is enabled
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('HHMGT Instances Query: ' . $wpdb->last_query);
+            error_log('HHMGT Instances Query: ' . $debug_query);
             error_log('HHMGT Instances Count: ' . $total . ', Results: ' . ($instances ? count($instances) : 0));
-            if ($wpdb->last_error) {
-                error_log('HHMGT Task Instances Query Error: ' . $wpdb->last_error);
+            if ($debug_error) {
+                error_log('HHMGT Task Instances Query Error: ' . $debug_error);
             }
         }
 
         return array(
             'instances' => $instances ? $instances : array(),
-            'total' => intval($total)
+            'total' => intval($total),
+            'debug_query' => $debug_query,
+            'debug_error' => $debug_error
         );
     }
 

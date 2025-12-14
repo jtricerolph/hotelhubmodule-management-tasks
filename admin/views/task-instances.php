@@ -130,7 +130,9 @@ if (!defined('ABSPATH')) {
             Debug: array_count=<?php echo count($instances); ?>, filtered_total=<?php echo $total_instances; ?><br>
             Raw DB count: <?php echo $raw_count; ?>, Today/past count: <?php echo $today_count; ?><br>
             Filters: completed=<?php echo $filters['include_completed'] ? '1' : '0'; ?>,
-            future=<?php echo $filters['include_future'] ? '1' : '0'; ?>
+            future=<?php echo $filters['include_future'] ? '1' : '0'; ?><br>
+            Main query: <code style="word-break: break-all; display: block; max-height: 100px; overflow: auto; background: #fff; padding: 5px; margin: 5px 0;"><?php echo esc_html($debug_query); ?></code>
+            Query error: <code><?php echo esc_html($debug_error ?: 'none'); ?></code>
         </div>
         <?php endif; ?>
     </div>
