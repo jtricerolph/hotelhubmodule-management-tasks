@@ -34,6 +34,7 @@ class HHMGT_Tasks_Admin {
         add_action('admin_post_hhmgt_update_future_tasks', array($this, 'update_future_tasks'));
         add_action('wp_ajax_hhmgt_get_task', array($this, 'ajax_get_task'));
         add_action('wp_ajax_hhmgt_schedule_task_now', array($this, 'ajax_schedule_task_now'));
+        add_action('wp_ajax_hhmgt_admin_delete_instance', array($this, 'ajax_delete_instance'));
     }
 
     /**
@@ -119,6 +120,161 @@ class HHMGT_Tasks_Admin {
 
         // Load template
         include HHMGT_PLUGIN_DIR . 'admin/views/task-edit.php';
+    }
+
+    /**
+     * Render task instances page (All Tasks view)
+     */
+    public static function render_instances() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions.', 'hhmgt'));
+        }
+
+        // Get current location
+        $current_location_id = isset($_GET['location_id']) ? intval($_GET['location_id']) : 0;
+
+        // Get locations
+        $locations = HHMGT_Settings::get_locations();
+
+        // If no location selected, use first location
+        if (!$current_location_id && !empty($locations)) {
+            $current_location_id = $locations[0]['id'];
+        }
+
+        // Get filter values
+        $filters = array(
+            'department' => isset($_GET['department']) ? array_map('intval', (array)$_GET['department']) : array(),
+            'status' => isset($_GET['status']) ? array_map('intval', (array)$_GET['status']) : array(),
+            'search' => isset($_GET['search']) ? sanitize_text_field($_GET['search']) : '',
+            'include_completed' => isset($_GET['include_completed']) && $_GET['include_completed'] === '1',
+            'include_future' => isset($_GET['include_future']) && $_GET['include_future'] === '1',
+        );
+
+        // Pagination
+        $per_page = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
+        $paged = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
+
+        // Get task instances
+        $result = self::get_task_instances($current_location_id, $filters, $per_page, $paged);
+        $instances = $result['instances'];
+        $total_instances = $result['total'];
+        $total_pages = ceil($total_instances / $per_page);
+
+        // Get departments for filter
+        $departments = self::get_departments($current_location_id);
+
+        // Get states for filter
+        $states = self::get_task_states($current_location_id);
+
+        // Load template
+        include HHMGT_PLUGIN_DIR . 'admin/views/task-instances.php';
+    }
+
+    /**
+     * Get task instances with filters
+     *
+     * @param int $location_id Location ID
+     * @param array $filters Filter values
+     * @param int $per_page Items per page
+     * @param int $paged Current page
+     * @return array Array with 'instances' and 'total'
+     */
+    private static function get_task_instances($location_id, $filters = array(), $per_page = 50, $paged = 1) {
+        global $wpdb;
+
+        $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
+        $table_tasks = $wpdb->prefix . 'hhmgt_tasks';
+        $table_states = $wpdb->prefix . 'hhmgt_task_states';
+        $table_departments = $wpdb->prefix . 'hhmgt_departments';
+        $table_locations = $wpdb->prefix . 'hhmgt_location_hierarchy';
+
+        // Base query
+        $select = "SELECT i.*,
+            t.task_name, t.description AS task_description, t.recurrence_type,
+            s.state_name, s.color_hex, s.is_complete_state,
+            d.dept_name, d.icon_name AS dept_icon, d.color_hex AS dept_color,
+            lh.level_name AS location_level, lh.location_name AS location_name,
+            u.display_name AS completed_by_name";
+
+        $from = " FROM {$table_instances} i
+            LEFT JOIN {$table_tasks} t ON i.task_id = t.id
+            LEFT JOIN {$table_states} s ON i.status_id = s.id
+            LEFT JOIN {$table_departments} d ON t.department_id = d.id
+            LEFT JOIN {$table_locations} lh ON i.location_hierarchy_id = lh.id
+            LEFT JOIN {$wpdb->users} u ON i.completed_by = u.ID";
+
+        $where = " WHERE i.location_id = %d";
+        $params = array($location_id);
+
+        // Apply filters
+        if (!empty($filters['department'])) {
+            $placeholders = implode(',', array_fill(0, count($filters['department']), '%d'));
+            $where .= " AND t.department_id IN ({$placeholders})";
+            $params = array_merge($params, $filters['department']);
+        }
+
+        if (!empty($filters['status'])) {
+            $placeholders = implode(',', array_fill(0, count($filters['status']), '%d'));
+            $where .= " AND i.status_id IN ({$placeholders})";
+            $params = array_merge($params, $filters['status']);
+        }
+
+        if (!empty($filters['search'])) {
+            $where .= " AND t.task_name LIKE %s";
+            $params[] = '%' . $wpdb->esc_like($filters['search']) . '%';
+        }
+
+        // Include completed filter
+        if (empty($filters['include_completed'])) {
+            $where .= " AND (s.is_complete_state IS NULL OR s.is_complete_state = 0)";
+        }
+
+        // Include future filter - by default show only today and past due
+        if (empty($filters['include_future'])) {
+            $where .= " AND i.scheduled_date <= %s";
+            $params[] = current_time('Y-m-d');
+        }
+
+        // Order by due date, then scheduled date
+        $order = " ORDER BY i.due_date ASC, i.scheduled_date ASC";
+
+        // Get total count
+        $count_query = "SELECT COUNT(*) " . $from . $where;
+        $total = $wpdb->get_var($wpdb->prepare($count_query, $params));
+
+        // Add pagination
+        $offset = ($paged - 1) * $per_page;
+        $limit = " LIMIT %d OFFSET %d";
+        $params[] = $per_page;
+        $params[] = $offset;
+
+        // Get instances
+        $query = $select . $from . $where . $order . $limit;
+        $instances = $wpdb->get_results($wpdb->prepare($query, $params));
+
+        return array(
+            'instances' => $instances,
+            'total' => intval($total)
+        );
+    }
+
+    /**
+     * Get task states for a location
+     *
+     * @param int $location_id Location ID
+     * @return array Array of states
+     */
+    private static function get_task_states($location_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'hhmgt_task_states';
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT id, state_name, color_hex, is_complete_state
+            FROM {$table}
+            WHERE location_id = %d AND is_enabled = 1
+            ORDER BY sort_order ASC",
+            $location_id
+        ));
     }
 
     /**
@@ -586,6 +742,49 @@ class HHMGT_Tasks_Admin {
             wp_send_json_success(array(
                 'message' => __('No new instances created. Instances may already exist or task settings need review.', 'hhmgt')
             ));
+        }
+    }
+
+    /**
+     * AJAX: Delete a task instance
+     */
+    public function ajax_delete_instance() {
+        check_ajax_referer('hhmgt_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'hhmgt')));
+        }
+
+        $instance_id = isset($_POST['instance_id']) ? intval($_POST['instance_id']) : 0;
+
+        if (!$instance_id) {
+            wp_send_json_error(array('message' => __('Invalid instance ID', 'hhmgt')));
+        }
+
+        global $wpdb;
+        $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
+        $table_notes = $wpdb->prefix . 'hhmgt_task_notes';
+
+        // Check if instance exists
+        $instance = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_instances} WHERE id = %d",
+            $instance_id
+        ));
+
+        if (!$instance) {
+            wp_send_json_error(array('message' => __('Task instance not found', 'hhmgt')));
+        }
+
+        // Delete related notes first
+        $wpdb->delete($table_notes, array('task_instance_id' => $instance_id), array('%d'));
+
+        // Delete the instance
+        $deleted = $wpdb->delete($table_instances, array('id' => $instance_id), array('%d'));
+
+        if ($deleted) {
+            wp_send_json_success(array('message' => __('Task instance deleted successfully', 'hhmgt')));
+        } else {
+            wp_send_json_error(array('message' => __('Failed to delete task instance', 'hhmgt')));
         }
     }
 }

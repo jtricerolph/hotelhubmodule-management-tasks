@@ -1,6 +1,6 @@
 <?php
 /**
- * Tasks List Page
+ * Configure Tasks Page (Task Templates/Configuration)
  *
  * @package HotelHub_Management_Tasks
  */
@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap hhmgt-admin">
-    <h1 class="wp-heading-inline"><?php _e('Tasks', 'hhmgt'); ?></h1>
+    <h1 class="wp-heading-inline"><?php _e('Configure Tasks', 'hhmgt'); ?></h1>
     <a href="<?php echo esc_url(add_query_arg(array('page' => 'hhmgt-edit-task', 'location_id' => $current_location_id), admin_url('admin.php'))); ?>" class="page-title-action">
         <?php _e('Add New Task', 'hhmgt'); ?>
     </a>
@@ -42,7 +42,7 @@ if (!defined('ABSPATH')) {
             $is_active = ($location['id'] == $current_location_id);
             $tab_class = 'nav-tab' . ($is_active ? ' nav-tab-active' : '');
             $tab_url = add_query_arg(array(
-                'page' => 'hhmgt-tasks',
+                'page' => 'hhmgt-configure-tasks',
                 'location_id' => $location['id']
             ), admin_url('admin.php'));
             ?>

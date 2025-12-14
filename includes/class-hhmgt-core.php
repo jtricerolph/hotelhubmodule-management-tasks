@@ -142,24 +142,34 @@ class HHMGT_Core {
      * Register admin menu items
      */
     public function register_admin_menu() {
-        // Main tasks menu
+        // Main tasks menu - points to All Tasks (instances view)
         add_menu_page(
             __('Tasks', 'hhmgt'),
             __('Tasks', 'hhmgt'),
             'manage_options',
             'hhmgt-tasks',
-            array('HHMGT_Tasks_Admin', 'render_list'),
+            array('HHMGT_Tasks_Admin', 'render_instances'),
             'dashicons-clipboard',
             30
         );
 
-        // Tasks list (same as main menu)
+        // All Tasks - view generated task instances (same as main menu)
         add_submenu_page(
             'hhmgt-tasks',
             __('All Tasks', 'hhmgt'),
             __('All Tasks', 'hhmgt'),
             'manage_options',
             'hhmgt-tasks',
+            array('HHMGT_Tasks_Admin', 'render_instances')
+        );
+
+        // Configure Tasks - task configuration/templates
+        add_submenu_page(
+            'hhmgt-tasks',
+            __('Configure Tasks', 'hhmgt'),
+            __('Configure Tasks', 'hhmgt'),
+            'manage_options',
+            'hhmgt-configure-tasks',
             array('HHMGT_Tasks_Admin', 'render_list')
         );
 
