@@ -42,11 +42,12 @@ if (!defined('ABSPATH')) {
         <input type="hidden" name="page" value="hhmgt-tasks">
         <input type="hidden" name="location_id" value="<?php echo esc_attr($current_location_id); ?>">
 
-        <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+        <!-- Row 1: Basic filters -->
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px;">
             <!-- Department Filter -->
             <div class="hhmgt-filter-group">
                 <label for="filter-department" style="display: block; margin-bottom: 5px; font-weight: 500;"><?php _e('Department', 'hhmgt'); ?></label>
-                <select name="department[]" id="filter-department" multiple style="min-width: 150px; height: 80px;">
+                <select name="department[]" id="filter-department" multiple style="min-width: 120px; height: 60px;">
                     <?php foreach ($departments as $dept): ?>
                         <option value="<?php echo esc_attr($dept->id); ?>"
                             <?php echo in_array($dept->id, $filters['department']) ? 'selected' : ''; ?>>
@@ -59,7 +60,7 @@ if (!defined('ABSPATH')) {
             <!-- Status Filter -->
             <div class="hhmgt-filter-group">
                 <label for="filter-status" style="display: block; margin-bottom: 5px; font-weight: 500;"><?php _e('Status', 'hhmgt'); ?></label>
-                <select name="status[]" id="filter-status" multiple style="min-width: 150px; height: 80px;">
+                <select name="status[]" id="filter-status" multiple style="min-width: 120px; height: 60px;">
                     <?php foreach ($states as $state): ?>
                         <option value="<?php echo esc_attr($state->id); ?>"
                             <?php echo in_array($state->id, $filters['status']) ? 'selected' : ''; ?>>
@@ -73,20 +74,15 @@ if (!defined('ABSPATH')) {
             <div class="hhmgt-filter-group">
                 <label for="filter-search" style="display: block; margin-bottom: 5px; font-weight: 500;"><?php _e('Search', 'hhmgt'); ?></label>
                 <input type="text" name="search" id="filter-search" value="<?php echo esc_attr($filters['search']); ?>"
-                       placeholder="<?php esc_attr_e('Task name...', 'hhmgt'); ?>" style="width: 200px;">
+                       placeholder="<?php esc_attr_e('Task name...', 'hhmgt'); ?>" style="width: 150px;">
             </div>
 
-            <!-- Checkboxes -->
-            <div class="hhmgt-filter-group" style="display: flex; flex-direction: column; gap: 5px;">
+            <!-- Include Completed -->
+            <div class="hhmgt-filter-group" style="padding-bottom: 5px;">
                 <label style="display: flex; align-items: center; gap: 5px;">
                     <input type="checkbox" name="include_completed" value="1"
                         <?php checked($filters['include_completed']); ?>>
                     <?php _e('Include Completed', 'hhmgt'); ?>
-                </label>
-                <label style="display: flex; align-items: center; gap: 5px;">
-                    <input type="checkbox" name="include_future" value="1"
-                        <?php checked($filters['include_future']); ?>>
-                    <?php _e('Include Future', 'hhmgt'); ?>
                 </label>
             </div>
 
@@ -99,6 +95,48 @@ if (!defined('ABSPATH')) {
                     <option value="100" <?php selected($per_page, 100); ?>>100</option>
                     <option value="999999" <?php selected($per_page, 999999); ?>><?php _e('All', 'hhmgt'); ?></option>
                 </select>
+            </div>
+        </div>
+
+        <!-- Row 2: Date range filters -->
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+            <!-- Scheduled Date Range -->
+            <div class="hhmgt-filter-group hhmgt-date-filter">
+                <label style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
+                    <input type="checkbox" name="filter_scheduled" value="1" <?php checked($filters['filter_scheduled']); ?>>
+                    <span style="font-weight: 500;"><?php _e('Scheduled', 'hhmgt'); ?></span>
+                </label>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <input type="date" name="scheduled_from" value="<?php echo esc_attr($filters['scheduled_from']); ?>" style="width: 130px;">
+                    <span>-</span>
+                    <input type="date" name="scheduled_to" value="<?php echo esc_attr($filters['scheduled_to']); ?>" style="width: 130px;">
+                </div>
+            </div>
+
+            <!-- Due Date Range -->
+            <div class="hhmgt-filter-group hhmgt-date-filter">
+                <label style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
+                    <input type="checkbox" name="filter_due" value="1" <?php checked($filters['filter_due']); ?>>
+                    <span style="font-weight: 500;"><?php _e('Due', 'hhmgt'); ?></span>
+                </label>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <input type="date" name="due_from" value="<?php echo esc_attr($filters['due_from']); ?>" style="width: 130px;">
+                    <span>-</span>
+                    <input type="date" name="due_to" value="<?php echo esc_attr($filters['due_to']); ?>" style="width: 130px;">
+                </div>
+            </div>
+
+            <!-- Completed Date Range -->
+            <div class="hhmgt-filter-group hhmgt-date-filter">
+                <label style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
+                    <input type="checkbox" name="filter_completed" value="1" <?php checked($filters['filter_completed']); ?>>
+                    <span style="font-weight: 500;"><?php _e('Completed', 'hhmgt'); ?></span>
+                </label>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <input type="date" name="completed_from" value="<?php echo esc_attr($filters['completed_from']); ?>" style="width: 130px;">
+                    <span>-</span>
+                    <input type="date" name="completed_to" value="<?php echo esc_attr($filters['completed_to']); ?>" style="width: 130px;">
+                </div>
             </div>
 
             <!-- Submit -->

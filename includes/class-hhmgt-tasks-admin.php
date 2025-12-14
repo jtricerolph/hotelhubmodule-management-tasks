@@ -147,7 +147,16 @@ class HHMGT_Tasks_Admin {
             'status' => isset($_GET['status']) ? array_map('intval', (array)$_GET['status']) : array(),
             'search' => isset($_GET['search']) ? sanitize_text_field($_GET['search']) : '',
             'include_completed' => isset($_GET['include_completed']) && $_GET['include_completed'] === '1',
-            'include_future' => isset($_GET['include_future']) && $_GET['include_future'] === '1',
+            // Date range filters
+            'filter_scheduled' => isset($_GET['filter_scheduled']) && $_GET['filter_scheduled'] === '1',
+            'scheduled_from' => isset($_GET['scheduled_from']) ? sanitize_text_field($_GET['scheduled_from']) : '',
+            'scheduled_to' => isset($_GET['scheduled_to']) ? sanitize_text_field($_GET['scheduled_to']) : '',
+            'filter_due' => isset($_GET['filter_due']) && $_GET['filter_due'] === '1',
+            'due_from' => isset($_GET['due_from']) ? sanitize_text_field($_GET['due_from']) : '',
+            'due_to' => isset($_GET['due_to']) ? sanitize_text_field($_GET['due_to']) : '',
+            'filter_completed' => isset($_GET['filter_completed']) && $_GET['filter_completed'] === '1',
+            'completed_from' => isset($_GET['completed_from']) ? sanitize_text_field($_GET['completed_from']) : '',
+            'completed_to' => isset($_GET['completed_to']) ? sanitize_text_field($_GET['completed_to']) : '',
         );
 
         // Pagination
@@ -223,15 +232,45 @@ class HHMGT_Tasks_Admin {
             $params[] = '%' . $wpdb->esc_like($filters['search']) . '%';
         }
 
-        // Include completed filter
+        // Include completed filter - by default exclude completed tasks
         if (empty($filters['include_completed'])) {
             $where .= " AND (s.is_complete_state IS NULL OR s.is_complete_state = 0)";
         }
 
-        // Include future filter - by default show only today and past due
-        if (empty($filters['include_future'])) {
-            $where .= " AND i.scheduled_date <= %s";
-            $params[] = current_time('Y-m-d');
+        // Scheduled date range filter
+        if (!empty($filters['filter_scheduled'])) {
+            if (!empty($filters['scheduled_from'])) {
+                $where .= " AND i.scheduled_date >= %s";
+                $params[] = $filters['scheduled_from'];
+            }
+            if (!empty($filters['scheduled_to'])) {
+                $where .= " AND i.scheduled_date <= %s";
+                $params[] = $filters['scheduled_to'];
+            }
+        }
+
+        // Due date range filter
+        if (!empty($filters['filter_due'])) {
+            if (!empty($filters['due_from'])) {
+                $where .= " AND i.due_date >= %s";
+                $params[] = $filters['due_from'];
+            }
+            if (!empty($filters['due_to'])) {
+                $where .= " AND i.due_date <= %s";
+                $params[] = $filters['due_to'];
+            }
+        }
+
+        // Completed date range filter
+        if (!empty($filters['filter_completed'])) {
+            if (!empty($filters['completed_from'])) {
+                $where .= " AND DATE(i.completed_at) >= %s";
+                $params[] = $filters['completed_from'];
+            }
+            if (!empty($filters['completed_to'])) {
+                $where .= " AND DATE(i.completed_at) <= %s";
+                $params[] = $filters['completed_to'];
+            }
         }
 
         // Order by due date, then scheduled date
