@@ -143,6 +143,7 @@ class HHMGT_Tasks_Admin {
 
         // Get filter values
         $filters = array(
+            'location_hierarchy' => isset($_GET['location_hierarchy']) ? array_map('intval', (array)$_GET['location_hierarchy']) : array(),
             'department' => isset($_GET['department']) ? array_map('intval', (array)$_GET['department']) : array(),
             'status' => isset($_GET['status']) ? array_map('intval', (array)$_GET['status']) : array(),
             'search' => isset($_GET['search']) ? sanitize_text_field($_GET['search']) : '',
@@ -173,6 +174,9 @@ class HHMGT_Tasks_Admin {
 
         // Get states for filter
         $states = self::get_task_states($current_location_id);
+
+        // Get location hierarchy for filter
+        $location_hierarchy = self::get_location_hierarchy($current_location_id);
 
         // Load template
         include HHMGT_PLUGIN_DIR . 'admin/views/task-instances.php';
@@ -230,6 +234,16 @@ class HHMGT_Tasks_Admin {
         if (!empty($filters['search'])) {
             $where .= " AND t.task_name LIKE %s";
             $params[] = '%' . $wpdb->esc_like($filters['search']) . '%';
+        }
+
+        // Location hierarchy filter (with parent-includes-children logic)
+        if (!empty($filters['location_hierarchy'])) {
+            $all_location_ids = self::get_admin_locations_with_children($location_id, $filters['location_hierarchy']);
+            if (!empty($all_location_ids)) {
+                $placeholders = implode(',', array_fill(0, count($all_location_ids), '%d'));
+                $where .= " AND i.location_hierarchy_id IN ({$placeholders})";
+                $params = array_merge($params, $all_location_ids);
+            }
         }
 
         // Include completed filter - by default exclude completed tasks
@@ -709,6 +723,60 @@ class HHMGT_Tasks_Admin {
             }
         }
         return false;
+    }
+
+    /**
+     * Get all location IDs including children of selected locations
+     *
+     * @param int $location_id Main location ID
+     * @param array $selected_ids Selected location hierarchy IDs
+     * @return array Array of all location IDs including children
+     */
+    private static function get_admin_locations_with_children($location_id, $selected_ids) {
+        global $wpdb;
+        $table_locations = $wpdb->prefix . 'hhmgt_location_hierarchy';
+
+        // Get all locations for this location
+        $all_locations = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, parent_id FROM {$table_locations}
+            WHERE location_id = %d AND is_enabled = 1",
+            $location_id
+        ));
+
+        // Build a map of parent_id => children
+        $children_map = array();
+        foreach ($all_locations as $loc) {
+            $parent = $loc->parent_id ?: 0;
+            if (!isset($children_map[$parent])) {
+                $children_map[$parent] = array();
+            }
+            $children_map[$parent][] = $loc->id;
+        }
+
+        // Recursively get all children
+        $result = array();
+        foreach ($selected_ids as $id) {
+            $result[] = $id;
+            self::add_admin_children_recursive($id, $children_map, $result);
+        }
+
+        return array_unique($result);
+    }
+
+    /**
+     * Recursively add children to result array
+     *
+     * @param int $parent_id Parent ID
+     * @param array $children_map Map of parent_id => children
+     * @param array &$result Result array (passed by reference)
+     */
+    private static function add_admin_children_recursive($parent_id, $children_map, &$result) {
+        if (isset($children_map[$parent_id])) {
+            foreach ($children_map[$parent_id] as $child_id) {
+                $result[] = $child_id;
+                self::add_admin_children_recursive($child_id, $children_map, $result);
+            }
+        }
     }
 
     /**

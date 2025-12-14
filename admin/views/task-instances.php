@@ -44,6 +44,19 @@ if (!defined('ABSPATH')) {
 
         <!-- Row 1: Basic filters -->
         <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 15px;">
+            <!-- Location Filter -->
+            <div class="hhmgt-filter-group">
+                <label for="filter-location" style="display: block; margin-bottom: 5px; font-weight: 500;"><?php _e('Location', 'hhmgt'); ?></label>
+                <select name="location_hierarchy[]" id="filter-location" multiple style="min-width: 150px; height: 60px;">
+                    <?php foreach ($location_hierarchy as $loc): ?>
+                        <option value="<?php echo esc_attr($loc->id); ?>"
+                            <?php echo in_array($loc->id, $filters['location_hierarchy']) ? 'selected' : ''; ?>>
+                            <?php echo str_repeat('— ', $loc->hierarchy_level); ?><?php echo esc_html($loc->location_name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
             <!-- Department Filter -->
             <div class="hhmgt-filter-group">
                 <label for="filter-department" style="display: block; margin-bottom: 5px; font-weight: 500;"><?php _e('Department', 'hhmgt'); ?></label>
@@ -261,16 +274,33 @@ if (!defined('ABSPATH')) {
                 </span>
                 <span class="pagination-links">
                     <?php
-                    $pagination_base = add_query_arg(array(
+                    $pagination_args = array(
                         'page' => 'hhmgt-tasks',
                         'location_id' => $current_location_id,
+                        'location_hierarchy' => $filters['location_hierarchy'],
                         'department' => $filters['department'],
                         'status' => $filters['status'],
                         'search' => $filters['search'],
                         'include_completed' => $filters['include_completed'] ? '1' : '',
-                        'include_future' => $filters['include_future'] ? '1' : '',
                         'per_page' => $per_page,
-                    ), admin_url('admin.php'));
+                    );
+                    // Add date filters if active
+                    if ($filters['filter_scheduled']) {
+                        $pagination_args['filter_scheduled'] = '1';
+                        $pagination_args['scheduled_from'] = $filters['scheduled_from'];
+                        $pagination_args['scheduled_to'] = $filters['scheduled_to'];
+                    }
+                    if ($filters['filter_due']) {
+                        $pagination_args['filter_due'] = '1';
+                        $pagination_args['due_from'] = $filters['due_from'];
+                        $pagination_args['due_to'] = $filters['due_to'];
+                    }
+                    if ($filters['filter_completed']) {
+                        $pagination_args['filter_completed'] = '1';
+                        $pagination_args['completed_from'] = $filters['completed_from'];
+                        $pagination_args['completed_to'] = $filters['completed_to'];
+                    }
+                    $pagination_base = add_query_arg($pagination_args, admin_url('admin.php'));
 
                     // First page
                     if ($paged > 1): ?>
