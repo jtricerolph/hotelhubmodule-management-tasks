@@ -34,17 +34,19 @@
             return;
         }
 
-        // Check if Tasks module's modal function AND its data are available
-        // hhmgtData is only localized on the Tasks module page, not on Daily List
-        var tasksModuleAvailable = typeof window.hhmgtOpenTaskModal === 'function' && typeof window.hhmgtData !== 'undefined';
-        console.log('[HHMGT-DL] Tasks module available:', tasksModuleAvailable, '(function:', typeof window.hhmgtOpenTaskModal === 'function', ', data:', typeof window.hhmgtData !== 'undefined', ')');
+        // Check if Tasks module's modal element exists on this page
+        // The main Tasks module uses #task-modal, which only exists on the Tasks page
+        // On Daily List, we need to use our own #hhmgt-task-modal
+        var tasksModuleModalExists = $('#task-modal').length > 0;
+        var localModalExists = $('#hhmgt-task-modal').length > 0;
+        console.log('[HHMGT-DL] Main task-modal exists:', tasksModuleModalExists, ', Local hhmgt-task-modal exists:', localModalExists);
 
-        if (tasksModuleAvailable) {
-            // Use Tasks module's modal function
+        if (tasksModuleModalExists && typeof window.hhmgtOpenTaskModal === 'function' && typeof window.hhmgtData !== 'undefined') {
+            // Use Tasks module's modal function (only when on Tasks module page)
             console.log('[HHMGT-DL] Calling hhmgtOpenTaskModal');
             window.hhmgtOpenTaskModal(instanceId);
         } else {
-            // Try to open in our own modal (hhmgtData not available on Daily List page)
+            // Use our own modal (on Daily List page)
             console.log('[HHMGT-DL] Calling openTaskModalLocal');
             openTaskModalLocal(instanceId);
         }
