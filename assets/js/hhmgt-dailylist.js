@@ -6,6 +6,8 @@
 (function($) {
     'use strict';
 
+    console.log('[HHMGT-DL] Daily List integration JS loaded');
+
     // Handle "Show all departments" toggle
     $(document).on('change', '.hhmgt-show-all-depts', function() {
         var $section = $(this).closest('.hhmgt-tasks-section');
@@ -20,10 +22,12 @@
 
     // Delegate click on task items within Daily List modal
     $(document).on('click', '.hhmgt-task-item', function(e) {
+        console.log('[HHMGT-DL] Task item clicked', this);
         e.preventDefault();
         e.stopPropagation();
 
         var instanceId = $(this).data('instance-id');
+        console.log('[HHMGT-DL] Instance ID:', instanceId);
 
         if (!instanceId) {
             console.warn('No instance ID found on task item');
@@ -31,11 +35,14 @@
         }
 
         // Check if Tasks module's modal function is available
+        console.log('[HHMGT-DL] hhmgtOpenTaskModal available:', typeof window.hhmgtOpenTaskModal === 'function');
         if (typeof window.hhmgtOpenTaskModal === 'function') {
             // Use Tasks module's modal function
+            console.log('[HHMGT-DL] Calling hhmgtOpenTaskModal');
             window.hhmgtOpenTaskModal(instanceId);
         } else {
             // Try to open in our own modal
+            console.log('[HHMGT-DL] Calling openTaskModalLocal');
             openTaskModalLocal(instanceId);
         }
     });
@@ -44,11 +51,13 @@
      * Open task modal locally (when Tasks module modal not available)
      */
     function openTaskModalLocal(instanceId) {
+        console.log('[HHMGT-DL] openTaskModalLocal called with:', instanceId);
         var $modal = $('#hhmgt-task-modal');
         var $content = $modal.find('.hhmgt-modal-content');
+        console.log('[HHMGT-DL] Modal found:', $modal.length > 0, 'Content found:', $content.length > 0);
 
         if (!$modal.length) {
-            console.warn('Task modal container not found');
+            console.warn('[HHMGT-DL] Task modal container not found');
             // Fallback: redirect to Tasks module
             if (typeof hhmgtDLData !== 'undefined' && hhmgtDLData.tasks_url) {
                 window.location.href = hhmgtDLData.tasks_url + '&task=' + instanceId;
@@ -62,6 +71,7 @@
         $modal.fadeIn(200);
 
         // Fetch task details via AJAX
+        console.log('[HHMGT-DL] AJAX URL:', hhmgtDLData.ajax_url, 'Nonce:', hhmgtDLData.nonce);
         $.ajax({
             url: hhmgtDLData.ajax_url,
             type: 'POST',
@@ -71,6 +81,7 @@
                 instance_id: instanceId
             },
             success: function(response) {
+                console.log('[HHMGT-DL] AJAX response:', response);
                 if (response.success && response.data) {
                     renderTaskDetail(response.data, $content);
                 } else {
