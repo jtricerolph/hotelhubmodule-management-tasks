@@ -34,14 +34,17 @@
             return;
         }
 
-        // Check if Tasks module's modal function is available
-        console.log('[HHMGT-DL] hhmgtOpenTaskModal available:', typeof window.hhmgtOpenTaskModal === 'function');
-        if (typeof window.hhmgtOpenTaskModal === 'function') {
+        // Check if Tasks module's modal function AND its data are available
+        // hhmgtData is only localized on the Tasks module page, not on Daily List
+        var tasksModuleAvailable = typeof window.hhmgtOpenTaskModal === 'function' && typeof window.hhmgtData !== 'undefined';
+        console.log('[HHMGT-DL] Tasks module available:', tasksModuleAvailable, '(function:', typeof window.hhmgtOpenTaskModal === 'function', ', data:', typeof window.hhmgtData !== 'undefined', ')');
+
+        if (tasksModuleAvailable) {
             // Use Tasks module's modal function
             console.log('[HHMGT-DL] Calling hhmgtOpenTaskModal');
             window.hhmgtOpenTaskModal(instanceId);
         } else {
-            // Try to open in our own modal
+            // Try to open in our own modal (hhmgtData not available on Daily List page)
             console.log('[HHMGT-DL] Calling openTaskModalLocal');
             openTaskModalLocal(instanceId);
         }
