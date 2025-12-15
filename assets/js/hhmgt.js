@@ -1535,4 +1535,7 @@
     // Also try on document ready (for direct page loads)
     $(document).ready(tryInit);
 
+    // Expose openTaskModal globally for cross-module use (Daily List integration)
+    window.hhmgtOpenTaskModal = openTaskModal;
+
 })(jQuery);

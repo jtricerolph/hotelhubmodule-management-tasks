@@ -58,6 +58,7 @@ class HotelHub_Management_Tasks {
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-scheduler.php';
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-bulk-update.php';
         require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-tasks-admin.php';
+        require_once HHMGT_PLUGIN_DIR . 'includes/class-hhmgt-dailylist-integration.php';
     }
 
     /**
@@ -80,6 +81,9 @@ class HotelHub_Management_Tasks {
 
         // Initialize core
         HHMGT_Core::instance();
+
+        // Initialize Daily List integration (if Daily List module is active)
+        HHMGT_DailyList_Integration::instance();
     }
 
     /**

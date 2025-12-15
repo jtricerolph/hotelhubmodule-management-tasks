@@ -1,0 +1,282 @@
+/**
+ * Daily List Integration Styles
+ *
+ * Styles for Management Tasks integration within Daily List module
+ */
+
+/* Tasks Section in Modal */
+.hhmgt-tasks-section {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    margin-top: 16px;
+}
+
+.hhmgt-tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.hhmgt-tasks-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Show All Toggle */
+.hhmgt-show-all-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.hhmgt-show-all-toggle input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.hhmgt-show-all-toggle:hover {
+    color: #475569;
+}
+
+/* Task List */
+.hhmgt-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.hhmgt-tasks-other {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.hhmgt-no-default-tasks {
+    font-size: 12px;
+    color: #94a3b8;
+    font-style: italic;
+    margin: 0;
+    padding: 8px 0;
+}
+
+/* Task Item */
+.hhmgt-task-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.hhmgt-task-item:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Urgency States */
+.hhmgt-task-item.hhmgt-urgency-overdue {
+    border-left: 3px solid #ef4444;
+}
+
+.hhmgt-task-item.hhmgt-urgency-due {
+    border-left: 3px solid #f59e0b;
+}
+
+.hhmgt-task-item.hhmgt-urgency-pending {
+    border-left: 3px solid #3b82f6;
+}
+
+/* Task Department */
+.hhmgt-task-dept {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Task Name */
+.hhmgt-task-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Task Status Badge */
+.hhmgt-task-status {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 10px;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+/* Task Due Date */
+.hhmgt-task-due {
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.hhmgt-urgency-overdue .hhmgt-task-due {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.hhmgt-urgency-due .hhmgt-task-due {
+    color: #f59e0b;
+    font-weight: 500;
+}
+
+/* Task Modal (Cross-module) */
+.hhmgt-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hhmgt-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.hhmgt-modal-container {
+    position: relative;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.hhmgt-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.hhmgt-modal-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.hhmgt-modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 24px;
+    color: #64748b;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.hhmgt-modal-close:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.hhmgt-modal-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.hhmgt-modal-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    color: #64748b;
+}
+
+.hhmgt-modal-loading .spinner {
+    border: 2px solid #e2e8f0;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: hhmgt-spin 0.8s linear infinite;
+}
+
+@keyframes hhmgt-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .hhmgt-task-item {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .hhmgt-task-dept {
+        order: 1;
+    }
+
+    .hhmgt-task-name {
+        order: 2;
+        font-size: 14px;
+    }
+
+    .hhmgt-task-status {
+        order: 3;
+        align-self: flex-start;
+    }
+
+    .hhmgt-task-due {
+        order: 4;
+    }
+
+    .hhmgt-tasks-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
