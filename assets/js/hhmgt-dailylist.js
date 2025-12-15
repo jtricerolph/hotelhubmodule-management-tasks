@@ -73,7 +73,18 @@
         // Show modal with loading state
         $content.html('<div class="hhmgt-modal-loading"><span class="spinner"></span> ' +
             (hhmgtDLData.strings ? hhmgtDLData.strings.loading : 'Loading...') + '</div>');
-        $modal.fadeIn(200);
+
+        console.log('[HHMGT-DL] Modal CSS before fadeIn:', {
+            display: $modal.css('display'),
+            visibility: $modal.css('visibility'),
+            opacity: $modal.css('opacity'),
+            zIndex: $modal.css('z-index'),
+            position: $modal.css('position')
+        });
+
+        $modal.fadeIn(200, function() {
+            console.log('[HHMGT-DL] Modal fadeIn complete, display is now:', $modal.css('display'));
+        });
 
         // Fetch task details via AJAX
         console.log('[HHMGT-DL] AJAX URL:', hhmgtDLData.ajax_url, 'Nonce:', hhmgtDLData.nonce);
@@ -88,7 +99,9 @@
             success: function(response) {
                 console.log('[HHMGT-DL] AJAX response:', response);
                 if (response.success && response.data) {
+                    console.log('[HHMGT-DL] About to call renderTaskDetail');
                     renderTaskDetail(response.data, $content);
+                    console.log('[HHMGT-DL] renderTaskDetail complete, modal visible:', $modal.is(':visible'));
                 } else {
                     $content.html('<div class="hhmgt-error">' +
                         (response.data || hhmgtDLData.strings.error) + '</div>');
