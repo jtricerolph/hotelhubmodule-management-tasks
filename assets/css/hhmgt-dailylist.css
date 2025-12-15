@@ -4,26 +4,41 @@
  * Styles for Management Tasks integration within Daily List module
  */
 
-/* Tasks Section in Modal */
+/* Tasks Section in Modal - matches Daily List section styling */
 .hhmgt-tasks-section {
-    padding: 16px;
-    background: #f8fafc;
-    border-radius: 8px;
-    margin-top: 16px;
+    margin-bottom: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px;
+    overflow: hidden;
 }
 
+/* Section Header with darker background - matches hhdl-section-header */
 .hhmgt-tasks-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin: -12px -12px 12px -12px;
+    padding: 10px 12px;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 6px 6px 0 0;
 }
 
-.hhmgt-tasks-header h4 {
+.hhmgt-tasks-header h3 {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
     color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hhmgt-tasks-header h3 .material-symbols-outlined {
+    font-size: 18px;
+    color: #6b7280;
 }
 
 /* Show All Toggle */
@@ -247,6 +262,126 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Error state */
+.hhmgt-error {
+    padding: 20px;
+    text-align: center;
+    color: #ef4444;
+}
+
+/* Task Detail Content */
+.hhmgt-task-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.hhmgt-detail-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.hhmgt-detail-location {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.hhmgt-detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+}
+
+.hhmgt-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hhmgt-detail-label {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.hhmgt-detail-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.hhmgt-detail-description h4,
+.hhmgt-detail-notes h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.hhmgt-detail-description p {
+    margin: 0;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+.hhmgt-detail-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.hhmgt-note-item {
+    padding: 10px 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+    border-left: 3px solid #e5e7eb;
+}
+
+.hhmgt-note-item p {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+    color: #374151;
+}
+
+.hhmgt-note-meta {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.hhmgt-detail-actions {
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.hhmgt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+
+.hhmgt-btn-primary {
+    background: #3b82f6;
+    color: #ffffff;
+    border: none;
+}
+
+.hhmgt-btn-primary:hover {
+    background: #2563eb;
 }
 
 /* Responsive */

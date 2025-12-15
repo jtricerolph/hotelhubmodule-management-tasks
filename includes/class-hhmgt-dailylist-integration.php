@@ -327,13 +327,16 @@ class HHMGT_DailyList_Integration {
             return; // Don't render section if no tasks at all
         }
         ?>
-        <div class="hhdl-modal-section hhmgt-tasks-section"
+        <section class="hhmgt-tasks-section"
              data-room-number="<?php echo esc_attr($room_number); ?>"
              data-location-id="<?php echo esc_attr($location_id); ?>"
              data-date="<?php echo esc_attr($date); ?>">
 
             <div class="hhmgt-tasks-header">
-                <h4><?php _e('Recurring Tasks', 'hhmgt'); ?></h4>
+                <h3>
+                    <span class="material-symbols-outlined">checklist_rtl</span>
+                    <?php _e('Recurring Tasks', 'hhmgt'); ?>
+                </h3>
                 <?php if ($other_tasks_count > 0): ?>
                     <label class="hhmgt-show-all-toggle">
                         <input type="checkbox" class="hhmgt-show-all-depts">
@@ -369,7 +372,7 @@ class HHMGT_DailyList_Integration {
                 ?>
             </div>
             <?php endif; ?>
-        </div>
+        </section>
         <?php
     }
 
@@ -433,7 +436,7 @@ class HHMGT_DailyList_Integration {
         // Localize with Tasks module URL and AJAX data
         wp_localize_script('hhmgt-dailylist', 'hhmgtDLData', array(
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('hhmgt_nonce'),
+            'nonce' => wp_create_nonce('hhmgt_ajax_nonce'),
             'tasks_url' => admin_url('admin.php?page=hhmgt-instances'),
             'strings' => array(
                 'error' => __('An error occurred. Please try again.', 'hhmgt'),
