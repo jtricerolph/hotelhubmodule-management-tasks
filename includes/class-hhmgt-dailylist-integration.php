@@ -94,8 +94,10 @@ class HHMGT_DailyList_Integration {
         $total_count = count($all_tasks);
         $overdue_count = 0;
         $due_today_count = 0;
+        $completed_today_count = 0;
         foreach ($all_tasks as $task) {
-            if ($task->urgency === 'overdue') $overdue_count++;
+            if ($task->urgency === 'completed') $completed_today_count++;
+            elseif ($task->urgency === 'overdue') $overdue_count++;
             elseif ($task->urgency === 'due') $due_today_count++;
         }
 
@@ -155,7 +157,8 @@ class HHMGT_DailyList_Integration {
             'count' => array(
                 'total' => $total_count,
                 'overdue' => $overdue_count,
-                'due_today' => $due_today_count
+                'due_today' => $due_today_count,
+                'completed_today' => $completed_today_count
             )
         ));
     }
@@ -209,14 +212,19 @@ class HHMGT_DailyList_Integration {
             return array();
         }
 
+        // Include tasks that are either:
+        // 1. Not complete and due today or overdue, OR
+        // 2. Completed today (regardless of due date)
         $where = array(
             "lh.location_id = %d",
             "lh.location_name = %s",
             "t.is_active = 1",
-            "(s.is_complete_state IS NULL OR s.is_complete_state = 0)",
-            "i.due_date <= %s"  // Due today or overdue
+            "(
+                ((s.is_complete_state IS NULL OR s.is_complete_state = 0) AND i.due_date <= %s)
+                OR (s.is_complete_state = 1 AND DATE(i.completed_at) = %s)
+            )"
         );
-        $params = array($location_id, $room_number, $date);
+        $params = array($location_id, $room_number, $date, $date);
 
         // Department filtering (unless include_all)
         if (!$include_all && !empty($department_ids)) {
@@ -239,6 +247,7 @@ class HHMGT_DailyList_Integration {
                     s.state_slug,
                     s.color_hex AS status_color,
                     CASE
+                        WHEN s.is_complete_state = 1 THEN 'completed'
                         WHEN i.due_date < %s THEN 'overdue'
                         WHEN i.due_date = %s THEN 'due'
                         ELSE 'pending'
@@ -286,8 +295,11 @@ class HHMGT_DailyList_Integration {
         $room_placeholders = implode(',', array_fill(0, count($room_numbers), '%s'));
 
         // Build params array - date params for CASE first, then location_id, room_numbers, date for WHERE
-        $params = array($date, $date, $location_id);
+        // CASE params: date (overdue), date (due_today), date (completed_today)
+        // WHERE params: location_id, room_numbers, date (due_date), date (completed_at)
+        $params = array($date, $date, $date, $location_id);
         $params = array_merge($params, $room_numbers);
+        $params[] = $date;
         $params[] = $date;
 
         $dept_filter = '';
@@ -297,10 +309,18 @@ class HHMGT_DailyList_Integration {
             $params = array_merge($params, $department_ids);
         }
 
+        // Include tasks that are either:
+        // 1. Not complete and due today or overdue, OR
+        // 2. Completed today (regardless of due date)
         $sql = "SELECT
                     lh.location_name AS room_number,
-                    SUM(CASE WHEN i.due_date < %s THEN 1 ELSE 0 END) AS overdue,
-                    SUM(CASE WHEN i.due_date = %s THEN 1 ELSE 0 END) AS due_today,
+                    SUM(CASE WHEN s.is_complete_state IS NULL OR s.is_complete_state = 0 THEN
+                        CASE WHEN i.due_date < %s THEN 1 ELSE 0 END
+                    ELSE 0 END) AS overdue,
+                    SUM(CASE WHEN s.is_complete_state IS NULL OR s.is_complete_state = 0 THEN
+                        CASE WHEN i.due_date = %s THEN 1 ELSE 0 END
+                    ELSE 0 END) AS due_today,
+                    SUM(CASE WHEN s.is_complete_state = 1 AND DATE(i.completed_at) = %s THEN 1 ELSE 0 END) AS completed_today,
                     COUNT(*) AS total
                 FROM {$table_instances} i
                 INNER JOIN {$table_tasks} t ON i.task_id = t.id
@@ -309,8 +329,10 @@ class HHMGT_DailyList_Integration {
                 WHERE lh.location_id = %d
                   AND lh.location_name IN ($room_placeholders)
                   AND t.is_active = 1
-                  AND (s.is_complete_state IS NULL OR s.is_complete_state = 0)
-                  AND i.due_date <= %s
+                  AND (
+                      ((s.is_complete_state IS NULL OR s.is_complete_state = 0) AND i.due_date <= %s)
+                      OR (s.is_complete_state = 1 AND DATE(i.completed_at) = %s)
+                  )
                   {$dept_filter}
                 GROUP BY lh.location_name";
 
@@ -323,6 +345,7 @@ class HHMGT_DailyList_Integration {
                 $counts[$row->room_number] = array(
                     'overdue' => (int)$row->overdue,
                     'due_today' => (int)$row->due_today,
+                    'completed_today' => (int)$row->completed_today,
                     'total' => (int)$row->total
                 );
             }
@@ -382,6 +405,7 @@ class HHMGT_DailyList_Integration {
                 $room['module_tasks'] = array(
                     'overdue' => 0,
                     'due_today' => 0,
+                    'completed_today' => 0,
                     'total' => 0
                 );
             }
@@ -488,7 +512,9 @@ class HHMGT_DailyList_Integration {
     private function render_task_item($task) {
         $urgency_class = 'hhmgt-urgency-' . $task->urgency;
 
-        if ($task->urgency === 'overdue') {
+        if ($task->urgency === 'completed') {
+            $due_display = __('Completed today', 'hhmgt');
+        } elseif ($task->urgency === 'overdue') {
             $due_display = sprintf(__('Overdue: %s', 'hhmgt'), date_i18n('j M', strtotime($task->due_date)));
         } elseif ($task->urgency === 'due') {
             $due_display = __('Due today', 'hhmgt');
