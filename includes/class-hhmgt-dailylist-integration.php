@@ -468,16 +468,49 @@ class HHMGT_DailyList_Integration {
     }
 
     /**
-     * Render task modal container for cross-module use
+     * Render task modal containers for cross-module use
      * Uses same structure as main Tasks module (class-hhmgt-display.php)
      */
     public function render_task_modal_container() {
-        // Only render if #task-modal doesn't already exist (not on Tasks page)
         ?>
+        <!-- Task detail modal -->
         <div id="task-modal" class="hhmgt-modal" style="display: none;">
             <div class="hhmgt-modal-overlay"></div>
             <div class="hhmgt-modal-content">
                 <!-- Modal content loaded dynamically by hhmgt.js openTaskModal -->
+            </div>
+        </div>
+
+        <!-- Completion confirmation modal (reminder + photo upload) -->
+        <div id="completion-modal" class="hhmgt-modal hhmgt-modal-small" style="display: none;">
+            <div class="hhmgt-modal-overlay"></div>
+            <div class="hhmgt-modal-content">
+                <!-- Completion form loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Status selection modal -->
+        <div id="status-selection-modal" class="hhmgt-modal hhmgt-modal-small" style="display: none;">
+            <div class="hhmgt-modal-overlay"></div>
+            <div class="hhmgt-modal-content">
+                <!-- Status selection loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Lightbox for viewing photos -->
+        <div id="hhmgt-lightbox" class="hhmgt-lightbox">
+            <div class="hhmgt-lightbox-content">
+                <button type="button" class="hhmgt-lightbox-close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+                <button type="button" class="hhmgt-lightbox-nav prev">
+                    <span class="material-symbols-outlined">chevron_left</span>
+                </button>
+                <img src="" alt="Photo" class="hhmgt-lightbox-image">
+                <button type="button" class="hhmgt-lightbox-nav next">
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+                <div class="hhmgt-lightbox-counter"></div>
             </div>
         </div>
         <?php
