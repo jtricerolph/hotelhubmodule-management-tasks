@@ -6,8 +6,6 @@
 (function($) {
     'use strict';
 
-    console.log('[HHMGT-DL] Daily List integration JS loaded');
-
     // Handle "Show all departments" toggle
     $(document).on('change', '.hhmgt-show-all-depts', function() {
         var $section = $(this).closest('.hhmgt-tasks-section');
@@ -22,15 +20,11 @@
 
     // Delegate click on task items within Daily List modal
     $(document).on('click', '.hhmgt-task-item', function(e) {
-        console.log('[HHMGT-DL] Task item clicked', this);
         e.preventDefault();
         e.stopPropagation();
 
         var instanceId = $(this).data('instance-id');
-        console.log('[HHMGT-DL] Instance ID:', instanceId);
-
         if (!instanceId) {
-            console.warn('No instance ID found on task item');
             return;
         }
 
@@ -38,16 +32,12 @@
         // The main Tasks module uses #task-modal, which only exists on the Tasks page
         // On Daily List, we need to use our own #hhmgt-task-modal
         var tasksModuleModalExists = $('#task-modal').length > 0;
-        var localModalExists = $('#hhmgt-task-modal').length > 0;
-        console.log('[HHMGT-DL] Main task-modal exists:', tasksModuleModalExists, ', Local hhmgt-task-modal exists:', localModalExists);
 
         if (tasksModuleModalExists && typeof window.hhmgtOpenTaskModal === 'function' && typeof window.hhmgtData !== 'undefined') {
             // Use Tasks module's modal function (only when on Tasks module page)
-            console.log('[HHMGT-DL] Calling hhmgtOpenTaskModal');
             window.hhmgtOpenTaskModal(instanceId);
         } else {
             // Use our own modal (on Daily List page)
-            console.log('[HHMGT-DL] Calling openTaskModalLocal');
             openTaskModalLocal(instanceId);
         }
     });
@@ -56,13 +46,10 @@
      * Open task modal locally (when Tasks module modal not available)
      */
     function openTaskModalLocal(instanceId) {
-        console.log('[HHMGT-DL] openTaskModalLocal called with:', instanceId);
         var $modal = $('#hhmgt-task-modal');
         var $content = $modal.find('.hhmgt-modal-content');
-        console.log('[HHMGT-DL] Modal found:', $modal.length > 0, 'Content found:', $content.length > 0);
 
         if (!$modal.length) {
-            console.warn('[HHMGT-DL] Task modal container not found');
             // Fallback: redirect to Tasks module
             if (typeof hhmgtDLData !== 'undefined' && hhmgtDLData.tasks_url) {
                 window.location.href = hhmgtDLData.tasks_url + '&task=' + instanceId;
@@ -74,20 +61,13 @@
         $content.html('<div class="hhmgt-modal-loading"><span class="spinner"></span> ' +
             (hhmgtDLData.strings ? hhmgtDLData.strings.loading : 'Loading...') + '</div>');
 
-        console.log('[HHMGT-DL] Modal CSS before fadeIn:', {
-            display: $modal.css('display'),
-            visibility: $modal.css('visibility'),
-            opacity: $modal.css('opacity'),
-            zIndex: $modal.css('z-index'),
-            position: $modal.css('position')
-        });
-
-        $modal.fadeIn(200, function() {
-            console.log('[HHMGT-DL] Modal fadeIn complete, display is now:', $modal.css('display'));
-        });
+        // Force display with !important to override PWA body CSS reset
+        $modal.addClass('active');
+        $modal[0].style.setProperty('display', 'flex', 'important');
+        $modal[0].style.setProperty('opacity', '1', 'important');
+        $modal[0].style.setProperty('pointer-events', 'auto', 'important');
 
         // Fetch task details via AJAX
-        console.log('[HHMGT-DL] AJAX URL:', hhmgtDLData.ajax_url, 'Nonce:', hhmgtDLData.nonce);
         $.ajax({
             url: hhmgtDLData.ajax_url,
             type: 'POST',
@@ -97,11 +77,8 @@
                 instance_id: instanceId
             },
             success: function(response) {
-                console.log('[HHMGT-DL] AJAX response:', response);
                 if (response.success && response.data) {
-                    console.log('[HHMGT-DL] About to call renderTaskDetail');
                     renderTaskDetail(response.data, $content);
-                    console.log('[HHMGT-DL] renderTaskDetail complete, modal visible:', $modal.is(':visible'));
                 } else {
                     $content.html('<div class="hhmgt-error">' +
                         (response.data || hhmgtDLData.strings.error) + '</div>');
@@ -112,6 +89,22 @@
                     (hhmgtDLData.strings ? hhmgtDLData.strings.error : 'Error loading task') + '</div>');
             }
         });
+    }
+
+    /**
+     * Close task modal
+     */
+    function closeTaskModal() {
+        var $modal = $('#hhmgt-task-modal');
+        if ($modal.length) {
+            $modal.removeClass('active');
+            $modal[0].style.setProperty('opacity', '0', 'important');
+            $modal[0].style.setProperty('pointer-events', 'none', 'important');
+            // After transition, hide completely
+            setTimeout(function() {
+                $modal[0].style.setProperty('display', 'none', 'important');
+            }, 200);
+        }
     }
 
     /**
@@ -196,18 +189,18 @@
 
     // Close task modal on overlay click
     $(document).on('click', '.hhmgt-modal-overlay', function() {
-        $(this).closest('.hhmgt-modal').fadeOut(200);
+        closeTaskModal();
     });
 
     // Close task modal on close button click
     $(document).on('click', '.hhmgt-modal-close', function() {
-        $(this).closest('.hhmgt-modal').fadeOut(200);
+        closeTaskModal();
     });
 
     // Close task modal on escape key
     $(document).on('keydown', function(e) {
-        if (e.key === 'Escape' && $('#hhmgt-task-modal').is(':visible')) {
-            $('#hhmgt-task-modal').fadeOut(200);
+        if (e.key === 'Escape' && $('#hhmgt-task-modal').hasClass('active')) {
+            closeTaskModal();
         }
     });
 
