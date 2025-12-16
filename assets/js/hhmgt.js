@@ -600,9 +600,17 @@
 
     /**
      * Load tasks
+     * Only runs on Tasks module page (where #tasks-list exists)
      */
     function loadTasks() {
         const $list = $('#tasks-list');
+
+        // Guard: Only run on Tasks module page
+        if (!$list.length) {
+            debugLog('loadTasks skipped - not on Tasks page');
+            return;
+        }
+
         $list.html('<div class="hhmgt-loading"><span class="material-symbols-outlined hhmgt-loading-icon">sync</span><p>' + hhmgtData.strings.loading + '</p></div>');
 
         debugLog('Loading tasks with filters:', currentState.filters);
@@ -750,6 +758,8 @@
      * Open task detail modal
      */
     function openTaskModal(instanceId) {
+        debugLog('Opening task modal for instance:', instanceId);
+
         $.ajax({
             url: hhmgtData.ajax_url,
             type: 'POST',
@@ -760,6 +770,7 @@
             },
             success: function(response) {
                 if (response.success) {
+                    debugLog('Task loaded:', response.data.instance.id, response.data.instance.task_name);
                     currentState.currentTask = response.data;
                     renderTaskModal(response.data);
                     showModal($('#task-modal'));
@@ -966,7 +977,10 @@
     function updateTaskStatus(statusId) {
         if (!currentState.currentTask) return;
 
+        // Capture instance ID at start (before async operations)
         const instanceId = currentState.currentTask.instance.id;
+
+        debugLog('Updating status for instance:', instanceId, 'to status:', statusId);
 
         $.ajax({
             url: hhmgtData.ajax_url,
@@ -984,10 +998,10 @@
                     // Close status selection modal
                     hideModal($('#status-selection-modal'));
 
-                    // Reload task detail to reflect new status
+                    // Reload task detail to reflect new status (using captured ID)
                     openTaskModal(instanceId);
 
-                    // Reload tasks list in background
+                    // Reload tasks list in background (only on Tasks page)
                     loadTasks();
                 } else {
                     showError(response.data);
@@ -1005,13 +1019,16 @@
     function updateChecklist() {
         if (!currentState.currentTask) return;
 
+        // Capture instance ID at start (before async operations)
+        const instanceId = currentState.currentTask.instance.id;
+
         const checklistState = {};
         $('.hhmgt-checklist-checkbox').each(function() {
             const index = $(this).data('index');
             checklistState[index] = $(this).is(':checked');
         });
 
-        debugLog('Updating checklist state:', checklistState);
+        debugLog('Updating checklist for instance:', instanceId, 'state:', checklistState);
 
         $.ajax({
             url: hhmgtData.ajax_url,
@@ -1019,7 +1036,7 @@
             data: {
                 action: 'hhmgt_update_checklist',
                 nonce: hhmgtData.nonce,
-                instance_id: currentState.currentTask.instance.id,
+                instance_id: instanceId,
                 checklist_state: checklistState
             },
             success: function(response) {
@@ -1029,9 +1046,9 @@
                     // If status was auto-updated, reload the task modal
                     if (response.data.status_updated) {
                         showToast('Status updated to: ' + response.data.new_status_name, 'success');
-                        // Reload task modal to reflect new status
-                        openTaskModal(currentState.currentTask.instance.id);
-                        // Reload tasks list in background
+                        // Reload task modal to reflect new status (using captured ID)
+                        openTaskModal(instanceId);
+                        // Reload tasks list in background (only on Tasks page)
                         loadTasks();
                     }
                 } else {
@@ -1051,6 +1068,9 @@
     function addNote() {
         if (!currentState.currentTask) return;
 
+        // Capture instance ID at start (before async operations)
+        const instanceId = currentState.currentTask.instance.id;
+
         const noteText = $('#note-text').val().trim();
         if (!noteText) {
             showError('Please enter a note');
@@ -1060,13 +1080,15 @@
         // Default carry forward to true (user can toggle it after adding)
         const carryForward = true;
 
+        debugLog('Adding note to instance:', instanceId);
+
         $.ajax({
             url: hhmgtData.ajax_url,
             type: 'POST',
             data: {
                 action: 'hhmgt_add_note',
                 nonce: hhmgtData.nonce,
-                instance_id: currentState.currentTask.instance.id,
+                instance_id: instanceId,
                 note_text: noteText,
                 carry_forward: carryForward,
                 note_photos: []
@@ -1075,8 +1097,8 @@
                 if (response.success) {
                     showToast(response.data.message, 'success');
                     $('#note-text').val('');
-                    // Reload task modal
-                    openTaskModal(currentState.currentTask.instance.id);
+                    // Reload task modal using captured ID
+                    openTaskModal(instanceId);
                 } else {
                     showError(response.data);
                 }
@@ -1285,6 +1307,11 @@
     function completeTask(photoIds) {
         if (!currentState.currentTask) return;
 
+        // Capture instance ID at start (before async operations)
+        const instanceId = currentState.currentTask.instance.id;
+
+        debugLog('Completing task instance:', instanceId);
+
         const $btn = $('#submit-completion-btn, #confirm-reminder-btn');
         $btn.prop('disabled', true).html('<span class="material-symbols-outlined rotating">sync</span> Completing...');
 
@@ -1294,13 +1321,14 @@
             data: {
                 action: 'hhmgt_complete_task',
                 nonce: hhmgtData.nonce,
-                instance_id: currentState.currentTask.instance.id,
+                instance_id: instanceId,
                 completion_photos: photoIds || []
             },
             success: function(response) {
                 if (response.success) {
                     showToast(response.data.message, 'success');
                     closeModals();
+                    // Reload tasks list (only on Tasks page, otherwise safe no-op)
                     loadTasks();
                 } else {
                     showError(response.data);
@@ -1318,10 +1346,17 @@
      * Upload completion photos and complete task
      */
     function uploadPhotosAndComplete() {
+        if (!currentState.currentTask) return;
+
         if (!currentState.completionPhotos || currentState.completionPhotos.length === 0) {
             $('#photo-error').show();
             return;
         }
+
+        // Capture instance ID at start (before async operations)
+        const instanceId = currentState.currentTask.instance.id;
+
+        debugLog('Uploading photos for instance:', instanceId);
 
         const $btn = $('#submit-completion-btn');
         $btn.prop('disabled', true).html('<span class="material-symbols-outlined rotating">sync</span> Uploading...');
@@ -1329,7 +1364,7 @@
         const formData = new FormData();
         formData.append('action', 'hhmgt_upload_completion_photos');
         formData.append('nonce', hhmgtData.nonce);
-        formData.append('instance_id', currentState.currentTask.instance.id);
+        formData.append('instance_id', instanceId);
 
         currentState.completionPhotos.forEach(function(file, index) {
             formData.append('photos[]', file);
