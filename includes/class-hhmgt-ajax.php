@@ -259,8 +259,9 @@ class HHMGT_Ajax {
         $table_notes = $wpdb->prefix . 'hhmgt_task_notes';
 
         // Get task instance with task details
+        // Note: Both tables have 'id' column - alias i.id last to ensure it's not overwritten by t.id
         $instance = $wpdb->get_row($wpdb->prepare(
-            "SELECT i.*, t.*
+            "SELECT i.*, t.*, i.id AS id
             FROM {$table_instances} i
             INNER JOIN {$table_tasks} t ON i.task_id = t.id
             WHERE i.id = %d",
