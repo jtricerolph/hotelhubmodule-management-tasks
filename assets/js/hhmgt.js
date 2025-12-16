@@ -39,6 +39,29 @@
     }
 
     /**
+     * Show modal with PWA-compatible CSS overrides
+     * Uses setProperty with !important to override PWA body CSS reset
+     */
+    function showModal($modal) {
+        if (!$modal.length) return;
+        $modal[0].style.setProperty('display', 'flex', 'important');
+        $modal[0].style.setProperty('opacity', '1', 'important');
+        $modal[0].style.setProperty('pointer-events', 'auto', 'important');
+    }
+
+    /**
+     * Hide modal with PWA-compatible CSS overrides
+     */
+    function hideModal($modal) {
+        if (!$modal.length) return;
+        $modal[0].style.setProperty('opacity', '0', 'important');
+        $modal[0].style.setProperty('pointer-events', 'none', 'important');
+        setTimeout(function() {
+            $modal[0].style.setProperty('display', 'none', 'important');
+        }, 200);
+    }
+
+    /**
      * Initialize module
      */
     function initModule() {
@@ -307,7 +330,7 @@
             if ($(e.target).hasClass('hhmgt-modal-overlay') || $(e.target).closest('.hhmgt-modal-close').length) {
                 // Only close the specific modal that was clicked, not all modals
                 const $modal = $(this).closest('.hhmgt-modal');
-                $modal.fadeOut(200);
+                hideModal($modal);
 
                 // Only clear currentTask if closing the main task modal
                 if ($modal.attr('id') === 'task-modal') {
@@ -739,7 +762,7 @@
                 if (response.success) {
                     currentState.currentTask = response.data;
                     renderTaskModal(response.data);
-                    $('#task-modal').fadeIn(200);
+                    showModal($('#task-modal'));
                 } else {
                     showError(response.data);
                 }
@@ -959,7 +982,7 @@
                     showToast(response.data.message, 'success');
 
                     // Close status selection modal
-                    $('#status-selection-modal').fadeOut(200);
+                    hideModal($('#status-selection-modal'));
 
                     // Reload task detail to reflect new status
                     openTaskModal(instanceId);
@@ -1144,7 +1167,7 @@
         `;
 
         $('#status-selection-modal .hhmgt-modal-content').html(modalHTML);
-        $('#status-selection-modal').fadeIn(200);
+        showModal($('#status-selection-modal'));
     }
 
     /**
@@ -1201,7 +1224,7 @@
         `;
 
         $content.html(modalHTML);
-        $modal.fadeIn(200);
+        showModal($modal);
     }
 
     /**
@@ -1242,7 +1265,7 @@
         `;
 
         $content.html(modalHTML);
-        $modal.fadeIn(200);
+        showModal($modal);
 
         // Store selected files
         currentState.completionPhotos = [];
@@ -1252,7 +1275,7 @@
      * Close completion modal
      */
     function closeCompletionModal() {
-        $('#completion-modal').fadeOut(200);
+        hideModal($('#completion-modal'));
         currentState.completionPhotos = [];
     }
 
@@ -1435,7 +1458,9 @@
      * Close all modals
      */
     function closeModals() {
-        $('.hhmgt-modal').fadeOut(200);
+        $('.hhmgt-modal').each(function() {
+            hideModal($(this));
+        });
         currentState.currentTask = null;
     }
 
