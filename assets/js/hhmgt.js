@@ -62,6 +62,18 @@
     }
 
     /**
+     * Dispatch custom event when task is modified
+     * Used by Daily List integration to refresh task sections
+     */
+    function dispatchTaskModified(instanceId, action) {
+        debugLog('Dispatching task modified event:', { instanceId: instanceId, action: action });
+        $(document).trigger('hhmgt:task-modified', {
+            instanceId: instanceId,
+            action: action
+        });
+    }
+
+    /**
      * Initialize module
      */
     function initModule() {
@@ -998,6 +1010,9 @@
                     // Close status selection modal
                     hideModal($('#status-selection-modal'));
 
+                    // Dispatch event for cross-module refresh
+                    dispatchTaskModified(instanceId, 'status_updated');
+
                     // Reload task detail to reflect new status (using captured ID)
                     openTaskModal(instanceId);
 
@@ -1046,6 +1061,10 @@
                     // If status was auto-updated, reload the task modal
                     if (response.data.status_updated) {
                         showToast('Status updated to: ' + response.data.new_status_name, 'success');
+
+                        // Dispatch event for cross-module refresh
+                        dispatchTaskModified(instanceId, 'checklist_completed');
+
                         // Reload task modal to reflect new status (using captured ID)
                         openTaskModal(instanceId);
                         // Reload tasks list in background (only on Tasks page)
@@ -1327,6 +1346,10 @@
             success: function(response) {
                 if (response.success) {
                     showToast(response.data.message, 'success');
+
+                    // Dispatch event for cross-module refresh
+                    dispatchTaskModified(instanceId, 'completed');
+
                     closeModals();
                     // Reload tasks list (only on Tasks page, otherwise safe no-op)
                     loadTasks();

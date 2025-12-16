@@ -54,6 +54,110 @@ class HHMGT_DailyList_Integration {
 
         // Add modal container to footer
         add_action('wp_footer', array($this, 'render_task_modal_container'));
+
+        // AJAX endpoint to refresh tasks section
+        add_action('wp_ajax_hhmgt_refresh_room_tasks', array($this, 'ajax_refresh_room_tasks'));
+    }
+
+    /**
+     * AJAX handler to refresh tasks section for a room
+     * Returns HTML for the tasks section
+     */
+    public function ajax_refresh_room_tasks() {
+        check_ajax_referer('hhmgt_ajax_nonce', 'nonce');
+
+        $location_id = isset($_POST['location_id']) ? intval($_POST['location_id']) : 0;
+        $room_number = isset($_POST['room_number']) ? sanitize_text_field($_POST['room_number']) : '';
+        $date = isset($_POST['date']) ? sanitize_text_field($_POST['date']) : date('Y-m-d');
+
+        if (!$location_id || !$room_number) {
+            wp_send_json_error(array('message' => __('Invalid parameters', 'hhmgt')));
+        }
+
+        // Get settings
+        $dl_settings = class_exists('HHDL_Settings')
+            ? HHDL_Settings::get_location_settings($location_id)
+            : array();
+
+        $enabled = isset($dl_settings['task_departments_enabled']) ? $dl_settings['task_departments_enabled'] : true;
+        if (!$enabled) {
+            wp_send_json_success(array('html' => '', 'count' => 0));
+        }
+
+        $default_dept_ids = isset($dl_settings['task_departments_default']) ? $dl_settings['task_departments_default'] : array();
+
+        // Get tasks
+        $default_tasks = self::get_tasks_for_room($location_id, $room_number, $date, $default_dept_ids, false);
+        $all_tasks = self::get_tasks_for_room($location_id, $room_number, $date, null, true);
+
+        // Calculate counts
+        $total_count = count($all_tasks);
+        $overdue_count = 0;
+        $due_today_count = 0;
+        foreach ($all_tasks as $task) {
+            if ($task->urgency === 'overdue') $overdue_count++;
+            elseif ($task->urgency === 'due') $due_today_count++;
+        }
+
+        // Generate HTML
+        ob_start();
+        if (!empty($all_tasks)) {
+            $other_tasks_count = count($all_tasks) - count($default_tasks);
+            ?>
+            <section class="hhmgt-tasks-section"
+                 data-room-number="<?php echo esc_attr($room_number); ?>"
+                 data-location-id="<?php echo esc_attr($location_id); ?>"
+                 data-date="<?php echo esc_attr($date); ?>">
+
+                <div class="hhmgt-tasks-header">
+                    <h3>
+                        <span class="material-symbols-outlined">checklist_rtl</span>
+                        <?php _e('Recurring Tasks', 'hhmgt'); ?>
+                    </h3>
+                    <?php if ($other_tasks_count > 0): ?>
+                        <label class="hhmgt-show-all-toggle">
+                            <input type="checkbox" class="hhmgt-show-all-depts">
+                            <span><?php printf(__('Show all departments (+%d)', 'hhmgt'), $other_tasks_count); ?></span>
+                        </label>
+                    <?php endif; ?>
+                </div>
+
+                <div class="hhmgt-task-list hhmgt-tasks-default">
+                    <?php foreach ($default_tasks as $task): ?>
+                        <?php $this->render_task_item($task); ?>
+                    <?php endforeach; ?>
+                    <?php if (empty($default_tasks) && $other_tasks_count > 0): ?>
+                        <p class="hhmgt-no-default-tasks">
+                            <?php _e('No tasks from default departments. Toggle "Show all" to see other tasks.', 'hhmgt'); ?>
+                        </p>
+                    <?php endif; ?>
+                </div>
+
+                <?php if ($other_tasks_count > 0): ?>
+                <div class="hhmgt-task-list hhmgt-tasks-other" style="display: none;">
+                    <?php
+                    $default_instance_ids = array_map(function($t) { return $t->instance_id; }, $default_tasks);
+                    foreach ($all_tasks as $task):
+                        if (!in_array($task->instance_id, $default_instance_ids)):
+                            $this->render_task_item($task);
+                        endif;
+                    endforeach;
+                    ?>
+                </div>
+                <?php endif; ?>
+            </section>
+            <?php
+        }
+        $html = ob_get_clean();
+
+        wp_send_json_success(array(
+            'html' => $html,
+            'count' => array(
+                'total' => $total_count,
+                'overdue' => $overdue_count,
+                'due_today' => $due_today_count
+            )
+        ));
     }
 
     /**
