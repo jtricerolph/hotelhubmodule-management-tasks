@@ -1560,6 +1560,31 @@
     // Also try on document ready (for direct page loads)
     $(document).ready(tryInit);
 
+    // Set up modal event handlers on document ready (always, for cross-module use)
+    $(document).ready(function() {
+        // Close modals on overlay/close button click (delegated for dynamic content)
+        $(document).on('click', '.hhmgt-modal-overlay, .hhmgt-modal-close', function(e) {
+            if ($(e.target).hasClass('hhmgt-modal-overlay') || $(e.target).closest('.hhmgt-modal-close').length) {
+                const $modal = $(this).closest('.hhmgt-modal');
+                hideModal($modal);
+
+                if ($modal.attr('id') === 'task-modal') {
+                    currentState.currentTask = null;
+                }
+            }
+        });
+
+        // Close modals on Escape key
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const $visibleModal = $('.hhmgt-modal:visible');
+                if ($visibleModal.length) {
+                    hideModal($visibleModal.first());
+                }
+            }
+        });
+    });
+
     // Expose openTaskModal globally for cross-module use (Daily List integration)
     window.hhmgtOpenTaskModal = openTaskModal;
 
