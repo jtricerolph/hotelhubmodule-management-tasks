@@ -151,7 +151,9 @@
         }
 
         // Update status class
-        $content.removeClass('hhdl-tasks-overdue hhdl-tasks-due hhdl-tasks-pending hhdl-tasks-none');
+        $content.removeClass('hhdl-tasks-overdue hhdl-tasks-due hhdl-tasks-pending hhdl-tasks-completed hhdl-tasks-none');
+
+        var incompleteCount = (counts.overdue || 0) + (counts.due_today || 0);
 
         if (counts.total === 0) {
             $content.addClass('hhdl-tasks-none');
@@ -162,6 +164,9 @@
         } else if (counts.due_today > 0) {
             $content.addClass('hhdl-tasks-due');
             $content.attr('title', counts.due_today + ' tasks due today');
+        } else if (counts.completed_today > 0 && incompleteCount === 0) {
+            $content.addClass('hhdl-tasks-completed');
+            $content.attr('title', counts.completed_today + ' tasks completed today');
         } else {
             $content.addClass('hhdl-tasks-pending');
             $content.attr('title', counts.total + ' pending tasks');
