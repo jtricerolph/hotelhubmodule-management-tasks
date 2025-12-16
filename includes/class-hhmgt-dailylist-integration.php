@@ -416,54 +416,68 @@ class HHMGT_DailyList_Integration {
         // Always enqueue on frontend if Daily List is loaded
         // The actual check happens in the hooks themselves
 
-        // Enqueue minimal JS for modal interaction
+        // Enqueue main Tasks module JS (contains openTaskModal)
         wp_enqueue_script(
-            'hhmgt-dailylist',
-            HHMGT_PLUGIN_URL . 'assets/js/hhmgt-dailylist.js',
+            'hhmgt-main',
+            HHMGT_PLUGIN_URL . 'assets/js/hhmgt.js',
             array('jquery'),
             HHMGT_VERSION,
             true
         );
 
-        // Enqueue integration CSS
-        wp_enqueue_style(
+        // Enqueue Daily List integration JS (handles click delegation and toggle)
+        wp_enqueue_script(
             'hhmgt-dailylist',
-            HHMGT_PLUGIN_URL . 'assets/css/hhmgt-dailylist.css',
+            HHMGT_PLUGIN_URL . 'assets/js/hhmgt-dailylist.js',
+            array('jquery', 'hhmgt-main'),
+            HHMGT_VERSION,
+            true
+        );
+
+        // Enqueue modal CSS (main Tasks module modal styles)
+        wp_enqueue_style(
+            'hhmgt-modal',
+            HHMGT_PLUGIN_URL . 'assets/css/modal.css',
             array(),
             HHMGT_VERSION
         );
 
-        // Localize with Tasks module URL and AJAX data
-        wp_localize_script('hhmgt-dailylist', 'hhmgtDLData', array(
+        // Enqueue integration CSS (task items in Daily List context)
+        wp_enqueue_style(
+            'hhmgt-dailylist',
+            HHMGT_PLUGIN_URL . 'assets/css/hhmgt-dailylist.css',
+            array('hhmgt-modal'),
+            HHMGT_VERSION
+        );
+
+        // Localize hhmgtData for main Tasks module JS
+        wp_localize_script('hhmgt-main', 'hhmgtData', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('hhmgt_ajax_nonce'),
-            'tasks_url' => admin_url('admin.php?page=hhmgt-instances'),
             'strings' => array(
                 'error' => __('An error occurred. Please try again.', 'hhmgt'),
-                'loading' => __('Loading...', 'hhmgt')
+                'loading' => __('Loading...', 'hhmgt'),
+                'confirm_delete' => __('Are you sure you want to delete this?', 'hhmgt')
             )
+        ));
+
+        // Also localize tasks_url for Daily List specific needs
+        wp_localize_script('hhmgt-dailylist', 'hhmgtDLData', array(
+            'tasks_url' => admin_url('admin.php?page=hhmgt-instances')
         ));
     }
 
     /**
      * Render task modal container for cross-module use
+     * Uses same structure as main Tasks module (class-hhmgt-display.php)
      */
     public function render_task_modal_container() {
-        // Only render if we're in a context where Daily List might be shown
+        // Only render if #task-modal doesn't already exist (not on Tasks page)
         ?>
-        <div id="hhmgt-task-modal" class="hhmgt-modal" style="display:none;">
+        <div id="task-modal" class="hhmgt-modal" style="display: none;">
             <div class="hhmgt-modal-overlay"></div>
-            <div class="hhmgt-modal-container">
-                <div class="hhmgt-modal-header">
-                    <h3 class="hhmgt-modal-title"><?php _e('Task Details', 'hhmgt'); ?></h3>
-                    <button type="button" class="hhmgt-modal-close">&times;</button>
-                </div>
-                <div class="hhmgt-modal-content">
-                    <div class="hhmgt-modal-loading">
-                        <span class="spinner"></span>
-                        <?php _e('Loading...', 'hhmgt'); ?>
-                    </div>
-                </div>
+            <div class="hhmgt-modal-content">
+                <!-- Modal content loaded dynamically by hhmgt.js openTaskModal -->
             </div>
         </div>
         <?php
