@@ -1583,6 +1583,172 @@
                 }
             }
         });
+
+        // Update status button click
+        $(document).on('click', '#update-status-btn', function() {
+            openStatusSelectionModal();
+        });
+
+        // Complete task button click
+        $(document).on('click', '#complete-task-btn', function() {
+            openCompletionModal();
+        });
+
+        // Status option selection
+        $(document).on('click', '.hhmgt-status-option', function() {
+            const statusId = $(this).data('status-id');
+            updateTaskStatus(statusId);
+        });
+
+        // Checklist change
+        $(document).on('change', '.hhmgt-checklist-checkbox', function() {
+            updateChecklist();
+        });
+
+        // Add note
+        $(document).on('click', '#add-note-btn', function() {
+            addNote();
+        });
+
+        // Toggle note carry-forward
+        $(document).on('change', '.hhmgt-note-carry-forward-checkbox', function() {
+            const noteId = $(this).data('note-id');
+            const carryForward = $(this).is(':checked');
+            updateNoteCarryForward(noteId, carryForward);
+        });
+
+        // Reminder modal - cancel
+        $(document).on('click', '#cancel-reminder-btn', function() {
+            closeCompletionModal();
+        });
+
+        // Reminder modal - confirm
+        $(document).on('click', '#confirm-reminder-btn', function() {
+            const requiresPhoto = $(this).data('requires-photo') === true || $(this).data('requires-photo') === 'true';
+            if (requiresPhoto) {
+                showPhotoUploadModal();
+            } else {
+                completeTask([]);
+            }
+        });
+
+        // Photo modal - cancel
+        $(document).on('click', '#cancel-photo-btn', function() {
+            closeCompletionModal();
+        });
+
+        // Photo modal - select photos button
+        $(document).on('click', '#select-photos-btn', function() {
+            $('#completion-photo-input').click();
+        });
+
+        // Photo modal - file input change
+        $(document).on('change', '#completion-photo-input', function() {
+            const files = Array.from(this.files);
+            if (files.length > 0) {
+                currentState.completionPhotos = currentState.completionPhotos.concat(files);
+                updatePhotoPreview();
+                $('#photo-error').hide();
+                $('#submit-completion-btn').prop('disabled', false);
+            }
+        });
+
+        // Photo modal - remove photo
+        $(document).on('click', '.hhmgt-photo-remove', function() {
+            const index = $(this).data('index');
+            currentState.completionPhotos.splice(index, 1);
+            updatePhotoPreview();
+            if (currentState.completionPhotos.length === 0) {
+                $('#submit-completion-btn').prop('disabled', true);
+            }
+        });
+
+        // Photo modal - submit
+        $(document).on('click', '#submit-completion-btn', function() {
+            uploadPhotosAndComplete();
+        });
+
+        // Lightbox - open on thumbnail click (but not on delete button)
+        $(document).on('click', '.hhmgt-completion-photo-thumb', function(e) {
+            if ($(e.target).closest('.hhmgt-completion-photo-delete').length) {
+                return;
+            }
+            const $thumbs = $('.hhmgt-completion-photo-thumb');
+            const photos = [];
+            $thumbs.each(function() {
+                photos.push($(this).data('full-url'));
+            });
+            const index = $thumbs.index(this);
+            openLightbox(photos, index);
+        });
+
+        // Delete completion photo
+        $(document).on('click', '.hhmgt-completion-photo-delete', function(e) {
+            e.stopPropagation();
+            if (!currentState.currentTask) return;
+            const photoId = $(this).data('photo-id');
+            const $thumb = $(this).closest('.hhmgt-completion-photo-thumb');
+            if (!confirm('Delete this photo?')) return;
+
+            $.ajax({
+                url: hhmgtData.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'hhmgt_delete_completion_photo',
+                    nonce: hhmgtData.nonce,
+                    instance_id: currentState.currentTask.instance.id,
+                    photo_id: photoId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $thumb.fadeOut(200, function() {
+                            $(this).remove();
+                            if ($('.hhmgt-completion-photo-thumb').length === 0) {
+                                $('.hhmgt-completion-photos-grid').closest('.hhmgt-modal-section').remove();
+                            }
+                        });
+                        showToast(response.data.message, 'success');
+                    } else {
+                        showError(response.data);
+                    }
+                },
+                error: function() {
+                    showError(hhmgtData.strings.error);
+                }
+            });
+        });
+
+        // Lightbox handlers
+        $(document).on('click', '.hhmgt-lightbox-close, #hhmgt-lightbox', function(e) {
+            if (e.target === this || $(e.target).closest('.hhmgt-lightbox-close').length) {
+                closeLightbox();
+            }
+        });
+
+        $(document).on('click', '.hhmgt-lightbox-content', function(e) {
+            e.stopPropagation();
+        });
+
+        $(document).on('click', '.hhmgt-lightbox-nav.prev', function(e) {
+            e.stopPropagation();
+            lightboxNavigate(-1);
+        });
+
+        $(document).on('click', '.hhmgt-lightbox-nav.next', function(e) {
+            e.stopPropagation();
+            lightboxNavigate(1);
+        });
+
+        $(document).on('keydown', function(e) {
+            if (!$('#hhmgt-lightbox').hasClass('active')) return;
+            if (e.key === 'Escape') {
+                closeLightbox();
+            } else if (e.key === 'ArrowLeft') {
+                lightboxNavigate(-1);
+            } else if (e.key === 'ArrowRight') {
+                lightboxNavigate(1);
+            }
+        });
     });
 
     // Expose openTaskModal globally for cross-module use (Daily List integration)
