@@ -76,6 +76,11 @@ class HHMGT_Scheduler {
     /**
      * Process a single fixed recurring task
      *
+     * Only creates FIRST instance if none exist (bootstrap).
+     * Subsequent instances are created by:
+     * - Overdue trigger (update_overdue_tasks)
+     * - Completion trigger (handle_task_completion)
+     *
      * @param object $task Task object with pattern data
      */
     private function process_fixed_recurring_task($task) {
@@ -83,35 +88,25 @@ class HHMGT_Scheduler {
 
         $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
 
-        // Get last scheduled instance
-        $last_instance = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table_instances}
+        // Check if any instance exists for this task
+        $has_instance = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table_instances}
             WHERE task_id = %d
-            ORDER BY scheduled_date DESC
             LIMIT 1",
             $task->id
         ));
 
-        $next_date = null;
-
-        if ($last_instance) {
-            // Calculate next occurrence
-            $last_date = new DateTime($last_instance->scheduled_date);
-            $last_date->modify('+' . $task->interval_days . ' days');
-            $next_date = $last_date->format('Y-m-d');
-        } else {
-            // First instance - schedule for today
-            $next_date = date('Y-m-d');
-        }
-
-        // Only create if next date is today or in the past
-        if ($next_date <= date('Y-m-d')) {
-            $this->create_task_instance($task, $next_date);
+        // Only create first instance if none exist (bootstrap)
+        if (!$has_instance) {
+            $this->create_task_instance($task, date('Y-m-d'));
         }
     }
 
     /**
-     * Handle task completion (for dynamic recurring)
+     * Handle task completion (for both fixed and dynamic recurring)
+     *
+     * - Fixed: next due = scheduled date + interval (maintains calendar schedule)
+     * - Dynamic: next due = completion date + interval (adapts to actual completion)
      *
      * @param int $instance_id Completed task instance ID
      * @param int $task_id Task ID
@@ -123,20 +118,20 @@ class HHMGT_Scheduler {
         $table_patterns = $wpdb->prefix . 'hhmgt_recurring_patterns';
         $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
 
-        // Get task with pattern
+        // Get task with pattern - now includes BOTH dynamic AND fixed
         $task = $wpdb->get_row($wpdb->prepare(
             "SELECT t.*, p.interval_days, p.lead_time_days
             FROM {$table_tasks} t
             INNER JOIN {$table_patterns} p ON t.recurrence_pattern_id = p.id
             WHERE t.id = %d
-            AND t.recurrence_type = 'dynamic'
+            AND t.recurrence_type IN ('dynamic', 'fixed')
             AND t.is_active = 1
             AND p.is_enabled = 1",
             $task_id
         ));
 
         if (!$task) {
-            return; // Not a dynamic recurring task or not active
+            return; // Not a recurring task or not active
         }
 
         // Get the completed instance
@@ -150,10 +145,17 @@ class HHMGT_Scheduler {
             return;
         }
 
-        // Calculate next occurrence from completion date
-        $completion_date = new DateTime($completed_instance->completed_at);
-        $completion_date->modify('+' . $task->interval_days . ' days');
-        $next_date = $completion_date->format('Y-m-d');
+        // Calculate next occurrence based on recurrence type
+        if ($task->recurrence_type === 'dynamic') {
+            // Dynamic: next due = completion date + interval
+            $base_date = new DateTime($completed_instance->completed_at);
+        } else {
+            // Fixed: next due = scheduled date + interval
+            $base_date = new DateTime($completed_instance->scheduled_date);
+        }
+
+        $base_date->modify('+' . $task->interval_days . ' days');
+        $next_date = $base_date->format('Y-m-d');
 
         // Create next instance
         $new_instance_id = $this->create_task_instance($task, $next_date);
@@ -287,7 +289,10 @@ class HHMGT_Scheduler {
     /**
      * Schedule instances for a specific task
      *
-     * Manually triggers instance generation for a recurring task
+     * Manually triggers instance generation for a recurring task.
+     * Creates only ONE instance - subsequent instances are created by:
+     * - Overdue trigger (for fixed recurring)
+     * - Completion trigger (for both fixed and dynamic)
      *
      * @param int $task_id Task ID
      * @return int Number of instances created
@@ -315,55 +320,27 @@ class HHMGT_Scheduler {
             return 0; // Not a recurring task or not active
         }
 
-        $instances_created = 0;
+        // Check if there's already an active (non-completed) instance
+        $active_instance = $wpdb->get_var($wpdb->prepare(
+            "SELECT i.id FROM {$table_instances} i
+            LEFT JOIN {$wpdb->prefix}hhmgt_task_states s ON i.status_id = s.id
+            WHERE i.task_id = %d
+            AND (s.is_complete_state IS NULL OR s.is_complete_state = 0)",
+            $task_id
+        ));
 
-        if ($task->recurrence_type === 'dynamic') {
-            // For dynamic tasks, create first instance only
-            $next_date = date('Y-m-d');
-            $result = $this->create_task_instance($task, $next_date);
-
-            if (is_array($result)) {
-                $instances_created = count($result);
-            } elseif ($result) {
-                $instances_created = 1;
-            }
-        } else {
-            // For fixed recurring, create instances for next 30 days
-            $current_date = new DateTime();
-            $end_date = new DateTime('+30 days');
-
-            // Get last scheduled instance to determine next date
-            $last_instance = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$table_instances}
-                WHERE task_id = %d
-                ORDER BY scheduled_date DESC
-                LIMIT 1",
-                $task->id
-            ));
-
-            if ($last_instance) {
-                $next_date = new DateTime($last_instance->scheduled_date);
-                $next_date->modify('+' . $task->interval_days . ' days');
-            } else {
-                // First instance - start today
-                $next_date = new DateTime();
-            }
-
-            // Generate instances up to 30 days out
-            while ($next_date <= $end_date) {
-                $result = $this->create_task_instance($task, $next_date->format('Y-m-d'));
-
-                if (is_array($result)) {
-                    $instances_created += count($result);
-                } elseif ($result) {
-                    $instances_created++;
-                }
-
-                $next_date->modify('+' . $task->interval_days . ' days');
-            }
+        if ($active_instance) {
+            return 0; // Already has an active instance
         }
 
-        return $instances_created;
+        // Create single instance for today
+        $next_date = date('Y-m-d');
+        $result = $this->create_task_instance($task, $next_date);
+
+        if (is_array($result)) {
+            return count($result);
+        }
+        return $result ? 1 : 0;
     }
 
     /**
@@ -401,7 +378,46 @@ class HHMGT_Scheduler {
     }
 
     /**
+     * Trigger next instance for fixed recurring task when current becomes overdue
+     *
+     * @param int $task_id Task ID
+     * @param string $current_scheduled_date Current instance scheduled date
+     */
+    private function trigger_next_instance_for_fixed($task_id, $current_scheduled_date) {
+        global $wpdb;
+
+        $table_tasks = $wpdb->prefix . 'hhmgt_tasks';
+        $table_patterns = $wpdb->prefix . 'hhmgt_recurring_patterns';
+
+        // Get task with pattern - only for fixed recurring
+        $task = $wpdb->get_row($wpdb->prepare(
+            "SELECT t.*, p.interval_days, p.lead_time_days
+            FROM {$table_tasks} t
+            INNER JOIN {$table_patterns} p ON t.recurrence_pattern_id = p.id
+            WHERE t.id = %d
+            AND t.recurrence_type = 'fixed'
+            AND t.is_active = 1
+            AND p.is_enabled = 1",
+            $task_id
+        ));
+
+        if (!$task) {
+            return; // Not a fixed recurring task or not active
+        }
+
+        // Calculate next occurrence from the SCHEDULED date (not today)
+        $scheduled_date = new DateTime($current_scheduled_date);
+        $scheduled_date->modify('+' . $task->interval_days . ' days');
+        $next_date = $scheduled_date->format('Y-m-d');
+
+        // Create next instance
+        $this->create_task_instance($task, $next_date);
+    }
+
+    /**
      * Update tasks that are now overdue
+     *
+     * Also triggers next instance creation for fixed recurring tasks
      */
     private function update_overdue_tasks() {
         global $wpdb;
@@ -423,7 +439,19 @@ class HHMGT_Scheduler {
             ));
 
             if ($overdue_state) {
-                // Update instances that are overdue
+                // Get instances that are about to become overdue (for triggering next)
+                $newly_overdue = $wpdb->get_results($wpdb->prepare(
+                    "SELECT i.id, i.task_id, i.scheduled_date
+                    FROM {$table_instances} i
+                    INNER JOIN {$table_states} s ON i.status_id = s.id
+                    WHERE i.location_id = %d
+                    AND i.due_date < %s
+                    AND (s.is_complete_state IS NULL OR s.is_complete_state = 0)
+                    AND s.state_slug != 'overdue'",
+                    $location->location_id, date('Y-m-d')
+                ));
+
+                // Update instances to overdue status
                 $wpdb->query($wpdb->prepare(
                     "UPDATE {$table_instances} i
                     INNER JOIN {$table_states} s ON i.status_id = s.id
@@ -433,6 +461,11 @@ class HHMGT_Scheduler {
                     AND (s.is_complete_state IS NULL OR s.is_complete_state = 0)",
                     $overdue_state->id, $location->location_id, date('Y-m-d')
                 ));
+
+                // Trigger next instance for fixed recurring tasks that just became overdue
+                foreach ($newly_overdue as $instance) {
+                    $this->trigger_next_instance_for_fixed($instance->task_id, $instance->scheduled_date);
+                }
             }
         }
     }

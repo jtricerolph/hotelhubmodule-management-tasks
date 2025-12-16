@@ -161,19 +161,34 @@ if (!defined('ABSPATH')) {
         </div>
     </form>
 
-    <!-- Results Summary -->
-    <div style="margin-bottom: 10px;">
-        <span class="displaying-num">
-            <?php printf(_n('%s task', '%s tasks', $total_instances, 'hhmgt'), number_format_i18n($total_instances)); ?>
-        </span>
+    <!-- Bulk Actions Bar -->
+    <div class="tablenav top">
+        <div class="alignleft actions bulkactions">
+            <label for="bulk-action-selector-top" class="screen-reader-text"><?php _e('Select bulk action', 'hhmgt'); ?></label>
+            <select name="action" id="bulk-action-selector-top">
+                <option value="-1"><?php _e('Bulk actions', 'hhmgt'); ?></option>
+                <option value="delete"><?php _e('Delete', 'hhmgt'); ?></option>
+            </select>
+            <button type="button" id="doaction" class="button action"><?php _e('Apply', 'hhmgt'); ?></button>
+            <span class="hhmgt-bulk-selected" style="margin-left: 10px; color: #666;"></span>
+        </div>
+        <div class="tablenav-pages">
+            <span class="displaying-num">
+                <?php printf(_n('%s task', '%s tasks', $total_instances, 'hhmgt'), number_format_i18n($total_instances)); ?>
+            </span>
+        </div>
     </div>
 
     <!-- Tasks Table -->
     <table class="wp-list-table widefat fixed striped hhmgt-instances-table">
         <thead>
             <tr>
-                <th scope="col" style="width: 28%;"><?php _e('Task Name', 'hhmgt'); ?></th>
-                <th scope="col" style="width: 18%;"><?php _e('Location', 'hhmgt'); ?></th>
+                <td id="cb" class="manage-column column-cb check-column" style="width: 2.2em;">
+                    <label class="screen-reader-text" for="cb-select-all-1"><?php _e('Select All', 'hhmgt'); ?></label>
+                    <input id="cb-select-all-1" type="checkbox">
+                </td>
+                <th scope="col" style="width: 26%;"><?php _e('Task Name', 'hhmgt'); ?></th>
+                <th scope="col" style="width: 17%;"><?php _e('Location', 'hhmgt'); ?></th>
                 <th scope="col" style="width: 5%;"><?php _e('Dept', 'hhmgt'); ?></th>
                 <th scope="col" style="width: 9%;"><?php _e('Scheduled', 'hhmgt'); ?></th>
                 <th scope="col" style="width: 9%;"><?php _e('Due', 'hhmgt'); ?></th>
@@ -185,13 +200,19 @@ if (!defined('ABSPATH')) {
         <tbody>
             <?php if (empty($instances)): ?>
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 20px;">
+                    <td colspan="9" style="text-align: center; padding: 20px;">
                         <?php _e('No tasks found matching your criteria.', 'hhmgt'); ?>
                     </td>
                 </tr>
             <?php else: ?>
                 <?php foreach ($instances as $instance): ?>
                     <tr data-instance-id="<?php echo esc_attr($instance->id); ?>">
+                        <th scope="row" class="check-column">
+                            <label class="screen-reader-text" for="cb-select-<?php echo esc_attr($instance->id); ?>">
+                                <?php printf(__('Select %s', 'hhmgt'), esc_html($instance->task_name)); ?>
+                            </label>
+                            <input id="cb-select-<?php echo esc_attr($instance->id); ?>" type="checkbox" name="instance_ids[]" value="<?php echo esc_attr($instance->id); ?>">
+                        </th>
                         <td>
                             <strong><?php echo esc_html($instance->task_name); ?></strong>
                         </td>
@@ -384,6 +405,102 @@ jQuery(document).ready(function($) {
         currentTask: null,
         states: []
     };
+
+    // ========================================
+    // Bulk Actions
+    // ========================================
+
+    // Select all checkbox
+    $('#cb-select-all-1').on('change', function() {
+        var isChecked = $(this).prop('checked');
+        $('input[name="instance_ids[]"]').prop('checked', isChecked);
+        updateBulkSelectedCount();
+    });
+
+    // Individual checkbox change
+    $(document).on('change', 'input[name="instance_ids[]"]', function() {
+        updateBulkSelectedCount();
+        // Update select-all checkbox state
+        var total = $('input[name="instance_ids[]"]').length;
+        var checked = $('input[name="instance_ids[]"]:checked').length;
+        $('#cb-select-all-1').prop('checked', total > 0 && total === checked);
+    });
+
+    // Update selected count display
+    function updateBulkSelectedCount() {
+        var count = $('input[name="instance_ids[]"]:checked').length;
+        if (count > 0) {
+            $('.hhmgt-bulk-selected').text(count + ' <?php echo esc_js(__('selected', 'hhmgt')); ?>');
+        } else {
+            $('.hhmgt-bulk-selected').text('');
+        }
+    }
+
+    // Apply bulk action
+    $('#doaction').on('click', function() {
+        var action = $('#bulk-action-selector-top').val();
+        var selectedIds = [];
+
+        $('input[name="instance_ids[]"]:checked').each(function() {
+            selectedIds.push($(this).val());
+        });
+
+        if (action === '-1') {
+            alert('<?php echo esc_js(__('Please select a bulk action.', 'hhmgt')); ?>');
+            return;
+        }
+
+        if (selectedIds.length === 0) {
+            alert('<?php echo esc_js(__('Please select at least one task.', 'hhmgt')); ?>');
+            return;
+        }
+
+        if (action === 'delete') {
+            if (!confirm('<?php echo esc_js(__('Are you sure you want to delete the selected tasks? This action cannot be undone.', 'hhmgt')); ?>')) {
+                return;
+            }
+
+            var $btn = $(this);
+            $btn.prop('disabled', true).text('<?php echo esc_js(__('Deleting...', 'hhmgt')); ?>');
+
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'hhmgt_admin_bulk_delete_instances',
+                    nonce: '<?php echo wp_create_nonce('hhmgt_admin_nonce'); ?>',
+                    instance_ids: selectedIds
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Remove deleted rows
+                        selectedIds.forEach(function(id) {
+                            $('tr[data-instance-id="' + id + '"]').fadeOut(300, function() {
+                                $(this).remove();
+                            });
+                        });
+                        // Reset select all and counter
+                        $('#cb-select-all-1').prop('checked', false);
+                        updateBulkSelectedCount();
+                        // Show success message
+                        alert(response.data.message || '<?php echo esc_js(__('Tasks deleted successfully.', 'hhmgt')); ?>');
+                    } else {
+                        alert(response.data.message || '<?php echo esc_js(__('Failed to delete tasks.', 'hhmgt')); ?>');
+                    }
+                },
+                error: function() {
+                    alert('<?php echo esc_js(__('An error occurred.', 'hhmgt')); ?>');
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text('<?php echo esc_js(__('Apply', 'hhmgt')); ?>');
+                }
+            });
+        }
+    });
+
+    // ========================================
+    // Single Task Actions
+    // ========================================
 
     // View instance button click
     $('.hhmgt-view-instance').on('click', function() {

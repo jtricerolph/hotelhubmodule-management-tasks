@@ -35,6 +35,7 @@ class HHMGT_Tasks_Admin {
         add_action('wp_ajax_hhmgt_get_task', array($this, 'ajax_get_task'));
         add_action('wp_ajax_hhmgt_schedule_task_now', array($this, 'ajax_schedule_task_now'));
         add_action('wp_ajax_hhmgt_admin_delete_instance', array($this, 'ajax_delete_instance'));
+        add_action('wp_ajax_hhmgt_admin_bulk_delete_instances', array($this, 'ajax_bulk_delete_instances'));
     }
 
     /**
@@ -937,6 +938,53 @@ class HHMGT_Tasks_Admin {
             wp_send_json_success(array('message' => __('Task instance deleted successfully', 'hhmgt')));
         } else {
             wp_send_json_error(array('message' => __('Failed to delete task instance', 'hhmgt')));
+        }
+    }
+
+    /**
+     * AJAX: Bulk delete task instances
+     */
+    public function ajax_bulk_delete_instances() {
+        check_ajax_referer('hhmgt_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'hhmgt')));
+        }
+
+        $instance_ids = isset($_POST['instance_ids']) ? array_map('intval', (array)$_POST['instance_ids']) : array();
+
+        if (empty($instance_ids)) {
+            wp_send_json_error(array('message' => __('No tasks selected', 'hhmgt')));
+        }
+
+        global $wpdb;
+        $table_instances = $wpdb->prefix . 'hhmgt_task_instances';
+        $table_notes = $wpdb->prefix . 'hhmgt_task_notes';
+
+        $deleted_count = 0;
+
+        foreach ($instance_ids as $instance_id) {
+            // Delete related notes first
+            $wpdb->delete($table_notes, array('task_instance_id' => $instance_id), array('%d'));
+
+            // Delete the instance
+            $deleted = $wpdb->delete($table_instances, array('id' => $instance_id), array('%d'));
+
+            if ($deleted) {
+                $deleted_count++;
+            }
+        }
+
+        if ($deleted_count > 0) {
+            wp_send_json_success(array(
+                'message' => sprintf(
+                    _n('%d task deleted successfully.', '%d tasks deleted successfully.', $deleted_count, 'hhmgt'),
+                    $deleted_count
+                ),
+                'deleted_count' => $deleted_count
+            ));
+        } else {
+            wp_send_json_error(array('message' => __('Failed to delete tasks', 'hhmgt')));
         }
     }
 }
